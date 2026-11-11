@@ -1,5 +1,6 @@
-import { initAudio, startAmbience, click } from './audio.js';
+import { initAudio, startAmbience, click, boom } from './audio.js';
 import { playIntro } from './intro.js';
+import { findImage } from './assets.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -8,172 +9,64 @@ function show(id) {
   $(id).classList.add('active');
 }
 
-/* ---------------- 主菜单背景：雨夜首尔天际线 ---------------- */
-const cv = $('menu-bg');
-const g = cv.getContext('2d');
-let W = 0, H = 0, DPR = 1;
-let skyline = [], rain = [], walkers = [], lightning = 0, menuRunning = true;
+/* ---------------- 主菜单背景 ---------------- */
+let stopBg3D = null;
+let menuRunning = true;
 
-function rand(a, b) { return a + Math.random() * (b - a); }
-
-function buildSkyline() {
-  skyline = [];
-  // 三层楼群，越远越暗
-  for (let layer = 0; layer < 3; layer++) {
-    const list = [];
-    let x = -50;
-    while (x < W + 50) {
-      const w = rand(40, 130) * (1 - layer * 0.15);
-      const h = rand(H * 0.12, H * (0.45 - layer * 0.08));
-      const wins = [];
-      const cols = Math.floor(w / 12), rows = Math.floor(h / 16);
-      for (let c = 0; c < cols; c++) for (let r = 0; r < rows; r++) {
-        if (Math.random() < 0.06) wins.push({ c, r, f: Math.random() < 0.25, warm: Math.random() < 0.7 });
-      }
-      list.push({ x, w, h, wins, sign: layer === 0 && x > W * 0.48 && w > 60 && Math.random() < 0.3 ? { t: ['약국', '병원', '편의점', 'PC방', '노래방', '치킨'][Math.floor(Math.random() * 6)], on: true } : null });
-      x += w + rand(-6, 10);
-    }
-    skyline.push(list);
+async function setupMenuBackground() {
+  const photo = await findImage('menu');
+  if (photo) {
+    // 有真实照片：使用照片 + 推镜
+    const el = $('menu-photo');
+    el.style.backgroundImage = `url("${photo}")`;
+    requestAnimationFrame(() => el.classList.add('on'));
+  } else {
+    // 没有照片：实时渲染的 3D 首尔街道
+    try {
+      const mod = await import('./menu3d.js');
+      if (!menuRunning) return;
+      stopBg3D = mod.startMenu3D($('menu-3d'));
+      $('menu-3d').classList.add('on');
+    } catch (e) { console.warn('3D 菜单背景加载失败', e); }
   }
-  rain = Array.from({ length: Math.floor(W / 4) }, () => ({ x: rand(0, W), y: rand(-H, H), l: rand(10, 26), s: rand(14, 24) }));
-  walkers = Array.from({ length: 5 }, (_, i) => newWalker(rand(0, W)));
 }
 
-function newWalker(x) {
-  return { x: x ?? (Math.random() < 0.5 ? -40 : W + 40), dir: Math.random() < 0.5 ? 1 : -1, sp: rand(8, 22), ph: rand(0, 6), sc: rand(0.75, 1.1), lean: rand(-0.25, 0.25) };
+/* ---- 写实雨丝（细、快、低透明度）+ 偶尔的闪电 ---- */
+const rc = $('menu-rain');
+const rg = rc.getContext('2d');
+let RW = 0, RH = 0, drops = [];
+function resizeRain() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  RW = rc.clientWidth; RH = rc.clientHeight;
+  rc.width = RW * dpr; rc.height = RH * dpr; rg.setTransform(dpr, 0, 0, dpr, 0, 0);
+  drops = Array.from({ length: Math.floor(RW / 3) }, () => newDrop(true));
 }
-
-function resize() {
-  DPR = Math.min(window.devicePixelRatio || 1, 2);
-  W = cv.clientWidth; H = cv.clientHeight;
-  cv.width = W * DPR; cv.height = H * DPR;
-  g.setTransform(DPR, 0, 0, DPR, 0, 0);
-  buildSkyline();
+function newDrop(any) {
+  const z = Math.random(); // 景深：近处的雨更粗更快更模糊
+  return { x: Math.random() * (RW + 200) - 100, y: any ? Math.random() * RH : -40, z, len: 18 + z * 46, sp: 900 + z * 1500, a: 0.04 + z * 0.12, w: 0.5 + z * 1.1 };
 }
-window.addEventListener('resize', resize);
-
-function drawWalker(w, groundY, t) {
-  // 蹒跚的感染者剪影
-  const s = 34 * w.sc;
-  const step = Math.sin(t * 3 + w.ph);
-  const jerk = Math.sin(t * 17 + w.ph) > 0.93 ? 0.3 : 0;
-  g.save();
-  g.translate(w.x, groundY);
-  g.scale(w.dir, 1);
-  g.rotate(w.lean + jerk * 0.5);
-  g.fillStyle = '#030303';
-  g.strokeStyle = '#030303';
-  g.lineCap = 'round';
-  g.lineWidth = s * 0.16;
-  // 腿
-  g.beginPath(); g.moveTo(0, -s * 1.1); g.lineTo(step * s * 0.25, 0); g.stroke();
-  g.beginPath(); g.moveTo(0, -s * 1.1); g.lineTo(-step * s * 0.25, 0); g.stroke();
-  // 躯干
-  g.lineWidth = s * 0.3;
-  g.beginPath(); g.moveTo(0, -s * 1.1); g.lineTo(s * 0.15, -s * 2); g.stroke();
-  // 手臂下垂/前伸
-  g.lineWidth = s * 0.12;
-  g.beginPath(); g.moveTo(s * 0.15, -s * 1.9); g.lineTo(s * 0.55, -s * (1.45 + step * 0.08)); g.stroke();
-  g.beginPath(); g.moveTo(s * 0.1, -s * 1.9); g.lineTo(s * 0.2, -s * 1.2); g.stroke();
-  // 歪斜的头
-  g.beginPath(); g.arc(s * 0.28, -s * 2.18, s * 0.17, 0, Math.PI * 2); g.fill();
-  g.restore();
-}
-
-function drawMenu(t) {
+window.addEventListener('resize', resizeRain);
+let lastT = performance.now(), flash = 0, nextFlash = 6 + Math.random() * 12;
+function drawRain(now) {
   if (!menuRunning) return;
-  requestAnimationFrame(drawMenu);
-  const time = t / 1000;
-
-  // 天空
-  const sky = g.createLinearGradient(0, 0, 0, H);
-  sky.addColorStop(0, '#05070a');
-  sky.addColorStop(0.55, '#121418');
-  sky.addColorStop(0.8, '#2a0e0d');
-  sky.addColorStop(1, '#090606');
-  g.fillStyle = sky; g.fillRect(0, 0, W, H);
-
-  // 远处城市火光
-  const glow = g.createRadialGradient(W * 0.72, H * 0.78, 10, W * 0.72, H * 0.78, W * 0.55);
-  glow.addColorStop(0, `rgba(170, 40, 20, ${0.35 + Math.sin(time * 0.7) * 0.06})`);
-  glow.addColorStop(1, 'rgba(0,0,0,0)');
-  g.fillStyle = glow; g.fillRect(0, 0, W, H);
-
-  if (lightning > 0) { g.fillStyle = `rgba(180, 195, 220, ${lightning * 0.25})`; g.fillRect(0, 0, W, H); lightning -= 0.04; }
-  else if (Math.random() < 0.0015) lightning = 1;
-
-  // 山与塔（南山剪影）
-  const groundY = H * 0.86;
-  g.fillStyle = '#07080a';
-  g.beginPath(); g.moveTo(W * 0.45, groundY);
-  g.quadraticCurveTo(W * 0.66, H * 0.42, W * 0.9, groundY); g.fill();
-  const tx = W * 0.665, ty = H * 0.53;
-  g.fillRect(tx - 3, ty - H * 0.2, 6, H * 0.2);
-  g.fillRect(tx - 14, ty - H * 0.17, 28, 16);
-  g.fillRect(tx - 1, ty - H * 0.27, 2, H * 0.08);
-  g.fillStyle = Math.sin(time * 3) > 0 ? '#ff2a2a' : '#4a0a0a';
-  g.beginPath(); g.arc(tx, ty - H * 0.27, 2.4, 0, Math.PI * 2); g.fill();
-
-  // 楼群
-  skyline.forEach((list, layer) => {
-    const shade = [14, 9, 5][layer];
-    list.slice().forEach((b) => {
-      const by = groundY - b.h - (2 - layer) * 4;
-      g.fillStyle = `rgb(${shade},${shade},${shade + 2})`;
-      g.fillRect(b.x, by, b.w, b.h + 40);
-      b.wins.forEach((wn) => {
-        let a = layer === 2 ? 0.9 : 0.55;
-        if (wn.f && Math.random() < 0.08) a *= 0.2;
-        g.fillStyle = wn.warm ? `rgba(230,170,90,${a * 0.6})` : `rgba(150,180,210,${a * 0.45})`;
-        g.fillRect(b.x + 4 + wn.c * 12, by + 6 + wn.r * 16, 6, 8);
-      });
-      if (b.sign) {
-        const on = Math.sin(time * 9 + b.x) > -0.85;
-        g.font = 'bold 13px "Noto Sans KR", sans-serif';
-        g.fillStyle = on ? 'rgba(255,60,60,.85)' : 'rgba(80,20,20,.6)';
-        g.shadowColor = '#ff2020'; g.shadowBlur = on ? 12 : 0;
-        g.fillText(b.sign.t, b.x + 6, by + 18);
-        g.shadowBlur = 0;
-      }
-    });
-  });
-
-  // 烟雾
-  for (let i = 0; i < 3; i++) {
-    const sx = ((time * (8 + i * 4) + i * 400) % (W + 600)) - 300;
-    const sm = g.createRadialGradient(sx, H * (0.55 + i * 0.07), 0, sx, H * (0.55 + i * 0.07), 320);
-    sm.addColorStop(0, 'rgba(40,36,34,.25)'); sm.addColorStop(1, 'rgba(0,0,0,0)');
-    g.fillStyle = sm; g.fillRect(0, 0, W, H);
+  requestAnimationFrame(drawRain);
+  const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
+  rg.clearRect(0, 0, RW, RH);
+  for (const d of drops) {
+    d.y += d.sp * dt; d.x -= d.sp * dt * 0.12;
+    if (d.y > RH + 40) Object.assign(d, newDrop(false));
+    rg.strokeStyle = `rgba(200,210,225,${d.a})`;
+    rg.lineWidth = d.w;
+    rg.beginPath(); rg.moveTo(d.x, d.y); rg.lineTo(d.x + d.len * 0.12, d.y - d.len); rg.stroke();
   }
-
-  // 地面
-  g.fillStyle = '#040404'; g.fillRect(0, groundY, W, H - groundY);
-  // 地面湿润反光
-  const refl = g.createLinearGradient(0, groundY, 0, H);
-  refl.addColorStop(0, 'rgba(160,40,30,.12)'); refl.addColorStop(1, 'rgba(0,0,0,0)');
-  g.fillStyle = refl; g.fillRect(0, groundY, W, H - groundY);
-
-  // 行走的感染者
-  walkers.forEach((w, i) => {
-    w.x += w.dir * w.sp * 0.016;
-    if (w.x < -80 || w.x > W + 80) walkers[i] = newWalker();
-    drawWalker(w, groundY + 4, time);
-  });
-
-  // 雨
-  g.strokeStyle = 'rgba(170,180,195,.22)'; g.lineWidth = 1;
-  g.beginPath();
-  rain.forEach((r) => {
-    r.y += r.s; r.x -= r.s * 0.18;
-    if (r.y > H) { r.y = rand(-50, 0); r.x = rand(0, W + 100); }
-    g.moveTo(r.x, r.y); g.lineTo(r.x + r.l * 0.18, r.y - r.l);
-  });
-  g.stroke();
-
-  // 红色警报灯扫过
-  const sweep = (Math.sin(time * 1.4) + 1) / 2;
-  g.fillStyle = `rgba(200,10,10,${0.05 * sweep})`;
-  g.fillRect(0, 0, W, H);
+  // 远处闪电：画面整体轻微泛白两下
+  nextFlash -= dt;
+  if (nextFlash <= 0) { flash = 1; nextFlash = 10 + Math.random() * 18; setTimeout(() => boom(0.25), 900 + Math.random() * 1500); }
+  if (flash > 0) {
+    flash -= dt * 2.2;
+    const f = flash > 0.6 ? flash : flash > 0.45 ? 0.1 : flash * 0.8;
+    $('menu-flash').style.opacity = Math.max(0, f * 0.5);
+  }
 }
 
 /* ---------------- 菜单 UI ---------------- */
@@ -197,7 +90,6 @@ document.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('cli
 $('controls-modal').addEventListener('click', (e) => { if (e.target.id === 'controls-modal') e.currentTarget.classList.add('hidden'); });
 
 let stopMenuAmb = null;
-// 首次交互后开启菜单环境音（浏览器要求用户手势）
 window.addEventListener('pointerdown', function first() {
   if (!$('menu').classList.contains('active')) return;
   initAudio();
@@ -205,14 +97,23 @@ window.addEventListener('pointerdown', function first() {
   window.removeEventListener('pointerdown', first);
 });
 
+// 让浏览器提前加载语音列表
+if (window.speechSynthesis) speechSynthesis.getVoices();
+
+function stopMenu() {
+  menuRunning = false;
+  if (stopBg3D) { stopBg3D(); stopBg3D = null; }
+  $('menu-3d').classList.remove('on');
+}
+
 $('btn-start').addEventListener('click', async () => {
   initAudio();
   click();
   if (stopMenuAmb) { stopMenuAmb(); stopMenuAmb = null; }
-  document.body.style.transition = 'opacity 1.2s';
+  document.body.style.transition = 'opacity 1.4s';
   document.body.style.opacity = '0';
-  await new Promise((r) => setTimeout(r, 1300));
-  menuRunning = false;
+  await new Promise((r) => setTimeout(r, 1500));
+  stopMenu();
   show('intro');
   document.body.style.opacity = '1';
   await playIntro();
@@ -238,12 +139,10 @@ async function startGame() {
 
 function backToMenu() {
   if (gameApi) gameApi.stop();
-  show('menu');
-  menuRunning = true;
-  requestAnimationFrame(drawMenu);
-  initAudio();
-  stopMenuAmb = startAmbience(0.6);
+  // 回到主菜单时重新载入页面，释放游戏占用的显存
+  location.reload();
 }
 
-resize();
-requestAnimationFrame(drawMenu);
+resizeRain();
+requestAnimationFrame(drawRain);
+setupMenuBackground();

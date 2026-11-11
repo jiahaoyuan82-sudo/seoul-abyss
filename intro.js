@@ -1,5 +1,9 @@
 // 开场剧情：韩语配音（浏览器语音合成 ko-KR） + 中文字幕（上）+ 韩语字幕（下，小号）
 import { startAmbience, siren, boom, heartbeat, growl } from './audio.js';
+import { findImage, findAudio } from './assets.js';
+
+// 素材（可选）：intro1.jpg ~ intro7.jpg 为每段剧情画面，voice1.mp3 ~ voice7.mp3 为每段韩语女声配音
+// 没有图片时使用程序绘制的画面；没有配音文件时使用浏览器的韩语女声朗读
 
 const LINES = [
   { scene: 'city',    cap: 'SEOUL · 2026',
@@ -28,40 +32,71 @@ const LINES = [
 const $ = (id) => document.getElementById(id);
 let skip = false;
 
+// 选择流畅自然的韩语女声：优先神经网络语音（Edge 的 SunHi Natural、Chrome 的 Google 한국의 等）
+const FEMALE = /SunHi|Sun-Hi|Yuna|Heami|Jimin|Seoyeon|Yuri|Sora|Jieun|Google 한국의|Google Korean|female|여성|여자/i;
+const MALE = /InJoon|Hyunsu|BongJin|GookMin|Minsu|male|남성|남자/i;
 function pickKoreanVoice() {
   const vs = window.speechSynthesis ? speechSynthesis.getVoices() : [];
-  const ko = vs.filter((v) => /^ko/i.test(v.lang));
-  // 优先选择偏低沉 / 高质量的声音
-  return ko.find((v) => /Google|Natural|Neural|InJoon|Yuna|Sora/i.test(v.name)) || ko[0] || null;
+  const ko = vs.filter((v) => /^ko/i.test(v.lang) || /Korean|한국/.test(v.name));
+  const score = (v) => {
+    let s = 0;
+    if (/Natural|Neural|Online/i.test(v.name)) s += 10;   // 神经网络语音最流畅
+    if (/Google/i.test(v.name)) s += 6;
+    if (FEMALE.test(v.name)) s += 8;
+    if (MALE.test(v.name) && !/female/i.test(v.name)) s -= 20;
+    return s;
+  };
+  return ko.sort((a, b) => score(b) - score(a))[0] || null;
 }
 
 function waitVoices() {
   return new Promise((res) => {
     if (!window.speechSynthesis) return res();
     if (speechSynthesis.getVoices().length) return res();
-    const t = setTimeout(res, 1500);
+    const t = setTimeout(res, 2000);
     speechSynthesis.onvoiceschanged = () => { clearTimeout(t); res(); };
   });
 }
 
-function speak(text) {
+function speakTTS(text) {
   return new Promise((res) => {
     if (!window.speechSynthesis) return res(false);
+    speechSynthesis.cancel();
     const voice = pickKoreanVoice();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'ko-KR';
     if (voice) u.voice = voice;
-    u.rate = 0.82;
-    u.pitch = 0.72;
+    u.rate = 0.92;   // 接近自然语速，避免一字一顿
+    u.pitch = 1.0;   // 不压低音调，保持女声自然音色
     u.volume = 1;
     let done = false;
-    const finish = (ok) => { if (!done) { done = true; res(ok); } };
+    const finish = (ok) => { if (!done) { done = true; clearInterval(keep); res(ok); } };
     u.onend = () => finish(true);
     u.onerror = () => finish(false);
-    // 部分浏览器不触发 onend，保底
-    setTimeout(() => finish(false), 4000 + text.length * 260);
+    // Chrome 长句朗读中途卡住的问题：定时 resume
+    const keep = setInterval(() => { if (speechSynthesis.speaking) speechSynthesis.resume(); }, 5000);
+    setTimeout(() => finish(false), 5000 + text.length * 250);
     speechSynthesis.speak(u);
   });
+}
+
+let currentAudio = null;
+function playVoiceFile(src) {
+  return new Promise((res) => {
+    const a = new Audio(src);
+    currentAudio = a;
+    a.volume = 1;
+    let done = false;
+    const finish = (ok) => { if (!done) { done = true; currentAudio = null; res(ok); } };
+    a.onended = () => finish(true);
+    a.onerror = () => finish(false);
+    a.play().catch(() => finish(false));
+  });
+}
+
+async function speak(text, file) {
+  if (file && await playVoiceFile(file)) return true;
+  return speakTTS(text);
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -321,6 +356,20 @@ function draw() {
 
 function setScene(s) { scene = s; sceneStart = performance.now(); }
 
+// 真实图片帧：两层交替淡入淡出 + 随机推镜方向
+let frameFlip = false;
+function showFrame(src) {
+  const a = $('frame-a'), b = $('frame-b');
+  const next = frameFlip ? a : b, prev = frameFlip ? b : a;
+  frameFlip = !frameFlip;
+  prev.className = prev.className.replace(/\bon\b/, '').trim();
+  setTimeout(() => {
+    next.style.backgroundImage = `url("${src}")`;
+    next.className = `frame on kb${1 + Math.floor(Math.random() * 4)}`;
+  }, 900); // 先暗下去，再亮起下一帧
+}
+function hideFrames() { ['frame-a', 'frame-b'].forEach((id) => { $(id).className = 'frame'; }); }
+
 /* ---------------- 播放流程 ---------------- */
 export async function playIntro() {
   skip = false;
@@ -329,18 +378,24 @@ export async function playIntro() {
   running = true; setScene('black'); draw();
 
   const subtitle = $('subtitle'), subCn = $('sub-cn'), subKr = $('sub-kr'), cap = $('intro-caption');
-  const onSkip = () => { skip = true; if (window.speechSynthesis) speechSynthesis.cancel(); };
+  const onSkip = () => { skip = true; if (window.speechSynthesis) speechSynthesis.cancel(); if (currentAudio) currentAudio.pause(); };
   $('btn-skip').onclick = onSkip;
   const keySkip = (e) => { if (e.key === 'Escape' || e.key === 'Enter') onSkip(); };
   window.addEventListener('keydown', keySkip);
 
   const stopAmb = startAmbience(0.8);
-  await waitVoices();
-  await sleepSkippable(1200);
+  // 预先检测所有剧情图片和配音文件
+  const [frames, voices] = await Promise.all([
+    Promise.all(LINES.map((_, i) => findImage(`intro${i + 1}`))),
+    Promise.all(LINES.map((_, i) => findAudio(`voice${i + 1}`))),
+    waitVoices(),
+  ]);
+  await sleepSkippable(800);
 
   for (let i = 0; i < LINES.length && !skip; i++) {
     const L = LINES[i];
-    setScene(L.scene);
+    if (frames[i]) { setScene('black'); cv.style.opacity = 0; showFrame(frames[i]); }
+    else { hideFrames(); cv.style.opacity = 1; setScene(L.scene); }
     cap.textContent = L.cap; cap.classList.add('show');
     if (L.scene === 'port') siren(10, 0.03);
     if (L.scene === 'inspect') { siren(8, 0.07); boom(0.4); }
@@ -354,7 +409,7 @@ export async function playIntro() {
 
     const minTime = 2200 + L.kr.length * 120;
     const t0 = performance.now();
-    await speak(L.kr);
+    await speak(L.kr, voices[i]);
     const rest = minTime - (performance.now() - t0);
     if (rest > 0) await sleepSkippable(rest);
     await sleepSkippable(900);
@@ -364,11 +419,14 @@ export async function playIntro() {
   }
 
   if (!skip) {
+    hideFrames(); cv.style.opacity = 1;
     setScene('title'); boom(0.7);
     await sleepSkippable(3200);
   }
 
   if (window.speechSynthesis) speechSynthesis.cancel();
+  if (currentAudio) currentAudio.pause();
+  hideFrames();
   stopAmb();
   window.removeEventListener('keydown', keySkip);
   window.removeEventListener('resize', resize);

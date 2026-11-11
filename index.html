@@ -20,7 +20,12 @@
 <body>
   <!-- ========== 主菜单 ========== -->
   <section id="menu" class="screen active">
-    <canvas id="menu-bg"></canvas>
+    <div id="menu-bg">
+      <div class="menu-photo" id="menu-photo"></div>
+      <div id="menu-3d"></div>
+      <canvas id="menu-rain"></canvas>
+      <div class="menu-flash" id="menu-flash"></div>
+    </div>
     <div class="menu-overlay"></div>
 
     <div class="menu-top">
@@ -84,9 +89,10 @@
   <!-- ========== 开场剧情 ========== -->
   <section id="intro" class="screen">
     <canvas id="intro-bg"></canvas>
+    <div class="frame" id="frame-a"></div>
+    <div class="frame" id="frame-b"></div>
     <div class="intro-vignette"></div>
-    <div class="letterbox top"></div>
-    <div class="letterbox bottom"></div>
+    <div class="intro-grain"></div>
     <div class="intro-caption" id="intro-caption"></div>
     <div class="subtitle" id="subtitle">
       <div class="sub-cn" id="sub-cn"></div>
