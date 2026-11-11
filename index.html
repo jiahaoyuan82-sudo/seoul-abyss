@@ -1,158 +1,1269 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>서울: 심연 — SEOUL ABYSS | Yuan Jiahao</title>
-  <meta name="description" content="第一人称丧尸末日生存网页游戏 · 首尔 · by Yuan Jiahao" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700;900&family=Noto+Sans+SC:wght@300;400;700;900&family=Oswald:wght@300;500;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
-    }
-  }
-  </script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>서울 심연 · Seoul Abyss — Yuan Jiahao</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;500;900&family=Noto+Sans+KR:wght@300;400;700&family=Noto+Serif+SC:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+:root{--red:#b3121b;--red2:#ff2a2a;--fg:#e9e4dc;--dim:#8d8880}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;background:#000;overflow:hidden;color:var(--fg);
+  font-family:"Noto Sans SC","Noto Sans KR",system-ui,sans-serif;user-select:none;-webkit-user-select:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+#gl{z-index:0}
+#fx{z-index:1;pointer-events:none;mix-blend-mode:screen}
+#vig{position:fixed;inset:0;z-index:2;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 55%,rgba(0,0,0,0) 35%,rgba(0,0,0,.55) 75%,rgba(0,0,0,.95) 100%)}
+#scan{position:fixed;inset:0;z-index:3;pointer-events:none;opacity:.07;
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.5) 0 1px,transparent 1px 3px)}
+.layer{position:fixed;inset:0;z-index:10;opacity:0;pointer-events:none;transition:opacity 1.2s ease}
+.layer.on{opacity:1;pointer-events:auto}
+#black{position:fixed;inset:0;background:#000;z-index:9;pointer-events:none;transition:opacity 1s ease;opacity:1}
+
+/* boot */
+#boot{display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000;cursor:pointer;gap:22px}
+#boot .warn{font-family:"Noto Sans KR";font-size:12px;letter-spacing:.35em;color:#7a2a2a}
+#boot .enter{font-size:15px;letter-spacing:.6em;color:#cfc9bf;animation:pulse 2.4s ease-in-out infinite}
+#boot .enter small{display:block;text-align:center;font-size:11px;letter-spacing:.4em;color:#6d6862;margin-top:10px;font-family:"Noto Sans KR"}
+#boot .hp{position:absolute;bottom:8vh;font-size:11px;letter-spacing:.25em;color:#5b5752;text-align:center;line-height:2}
+#boot .load{font-size:11px;color:#55504a;letter-spacing:.3em}
+@keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
+
+/* presents */
+#presents{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;pointer-events:none!important}
+#presents .name{font-family:"Noto Serif KR",serif;font-weight:300;font-size:clamp(28px,4.6vw,64px);letter-spacing:.55em;
+  padding-left:.55em;color:#e8e2d8;text-shadow:0 0 30px rgba(255,255,255,.15)}
+#presents .sub{font-size:12px;letter-spacing:.8em;color:#8b857c;padding-left:.8em;font-family:"Noto Sans KR"}
+#presents .line{width:0;height:1px;background:linear-gradient(90deg,transparent,#9b1b1b,transparent);transition:width 2.5s ease}
+#presents.on .line{width:min(420px,60vw)}
+
+/* menu */
+#menu .left{position:absolute;left:clamp(28px,7vw,120px);top:0;bottom:70px;display:flex;flex-direction:column;justify-content:center;width:min(560px,80vw)}
+#menu .tag{font-family:"Noto Sans KR";font-size:11px;letter-spacing:.5em;color:#a32222;margin-bottom:18px;display:flex;align-items:center;gap:12px}
+#menu .tag::before{content:"";width:34px;height:1px;background:#a32222}
+#menu h1{font-family:"Noto Serif KR",serif;font-weight:900;font-size:clamp(48px,min(8.4vw,13vh),124px);line-height:.95;letter-spacing:.06em;
+  color:#ece6dc;text-shadow:0 2px 0 rgba(0,0,0,.6),0 0 40px rgba(0,0,0,.9);position:relative}
+#menu h1 .glitch{position:absolute;inset:0;color:#ff1e1e;opacity:0;mix-blend-mode:screen;pointer-events:none}
+#menu h1.g .glitch{opacity:.55;transform:translate(3px,-1px);clip-path:inset(30% 0 45% 0)}
+#menu .en{font-family:"Noto Sans KR";font-weight:300;font-size:clamp(13px,1.3vw,18px);letter-spacing:1.05em;color:#bdb6ab;margin-top:16px}
+#menu .zh{font-family:"Noto Serif SC";font-size:13px;letter-spacing:.6em;color:#7f7a72;margin-top:8px}
+#menu .by{font-size:11px;letter-spacing:.42em;color:#8d877e;margin-top:26px;font-family:"Noto Sans KR"}
+#menu .by b{color:#e5ddd0;font-weight:400;letter-spacing:.3em}
+#menu nav{margin-top:clamp(18px,6vh,80px);display:flex;flex-direction:column;gap:clamp(0px,.6vh,6px)}
+.mi{position:relative;display:flex;align-items:baseline;gap:16px;padding:clamp(6px,1.1vh,11px) 0 clamp(6px,1.1vh,11px) 26px;cursor:pointer;width:max-content;
+  color:#bfb8ad;transition:color .25s,transform .25s}
+.mi::before{content:"";position:absolute;left:0;top:50%;width:10px;height:1px;background:#555;transition:width .3s,background .3s}
+.mi .t{font-family:"Noto Serif SC";font-size:20px;letter-spacing:.32em;font-weight:400}
+.mi .k{font-family:"Noto Sans KR";font-size:11px;letter-spacing:.3em;color:#6f6a63}
+.mi.primary .t{font-size:26px;font-weight:700;color:#f1ebe1}
+.mi.primary::before{background:#b3121b;width:16px}
+.mi.sel,.mi:hover{color:#fff;transform:translateX(8px)}
+.mi.sel::before,.mi:hover::before{width:20px;background:#ff2a2a;box-shadow:0 0 10px #ff2a2a}
+.mi.sel .k,.mi:hover .k{color:#c94a4a}
+.mi.dis{opacity:.38;pointer-events:none}
+.mi.dis .k::after{content:" · 暂无存档";letter-spacing:.1em}
+#menu .hud{position:absolute;right:clamp(20px,4vw,60px);top:clamp(18px,4vh,44px);text-align:right;font-family:"Noto Sans KR";font-size:11px;letter-spacing:.22em;color:#9d968c;line-height:2}
+#menu .hud .live{color:#ff3b3b}
+#menu .hud .live::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#ff2a2a;margin-right:8px;vertical-align:1px;animation:pulse 1.2s infinite}
+#menu .ticker{position:absolute;left:0;right:0;bottom:0;height:34px;background:linear-gradient(90deg,rgba(80,0,0,.85),rgba(20,0,0,.6));
+  border-top:1px solid rgba(255,40,40,.35);overflow:hidden;display:flex;align-items:center}
+#menu .ticker .lab{flex:none;padding:0 16px;height:100%;display:flex;align-items:center;background:#b3121b;font-size:11px;letter-spacing:.2em;font-weight:700;font-family:"Noto Sans KR";z-index:2}
+#menu .ticker .run{white-space:nowrap;font-size:12px;letter-spacing:.12em;color:#f0d6d6;animation:run 60s linear infinite;padding-left:100%;font-family:"Noto Sans KR","Noto Sans SC"}
+@keyframes run{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+#menu .copy{position:absolute;right:clamp(20px,4vw,60px);bottom:48px;font-size:10px;letter-spacing:.3em;color:#5f5a54}
+#menu .keys{position:absolute;right:clamp(20px,4vw,60px);bottom:66px;font-size:10px;letter-spacing:.25em;color:#5f5a54}
+
+/* panels */
+.panel{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(3px);
+  opacity:0;pointer-events:none;transition:opacity .4s}
+.panel.on{opacity:1;pointer-events:auto}
+.panel .box{width:min(520px,90vw);background:rgba(10,8,8,.92);border:1px solid rgba(255,255,255,.08);border-left:2px solid #b3121b;padding:34px 36px}
+.panel h2{font-family:"Noto Serif SC";font-weight:700;font-size:22px;letter-spacing:.3em;margin-bottom:4px}
+.panel h2 small{display:block;font-family:"Noto Sans KR";font-size:11px;font-weight:400;letter-spacing:.3em;color:#7d776f;margin-top:6px}
+.row{display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:14px;letter-spacing:.15em}
+.row span small{display:block;font-size:10px;color:#6f6a63;letter-spacing:.2em;font-family:"Noto Sans KR";margin-top:3px}
+.seg{display:flex;gap:4px}
+.seg button,.btn{background:transparent;border:1px solid rgba(255,255,255,.15);color:#cfc8bd;padding:6px 14px;font:inherit;font-size:12px;letter-spacing:.15em;cursor:pointer}
+.seg button.on{border-color:#b3121b;background:rgba(179,18,27,.25);color:#fff}
+.btn{margin-top:26px;padding:10px 26px}
+.btn:hover{border-color:#ff2a2a;color:#fff}
+input[type=range]{accent-color:#b3121b;width:160px}
+.credits p{font-size:13px;letter-spacing:.2em;line-height:2.3;color:#bdb6ab}
+.credits p b{color:#fff;font-weight:400}
+.note{font-size:11px;color:#8a5a5a;letter-spacing:.1em;margin-top:12px;line-height:1.8}
+
+/* intro */
+#intro{pointer-events:auto}
+.bar{position:absolute;left:0;right:0;height:11vh;background:#000;z-index:2;transition:transform 1.4s ease}
+.bar.top{top:0;transform:translateY(-100%)} .bar.bot{bottom:0;transform:translateY(100%)}
+#intro.on .bar{transform:translateY(0)}
+#sub{position:absolute;left:50%;bottom:calc(11vh + 4vh);transform:translateX(-50%);width:min(1100px,90vw);text-align:center;z-index:3}
+#sub .zh{font-family:"Noto Serif SC",serif;font-size:clamp(17px,1.9vw,27px);letter-spacing:.14em;color:#f2ede4;
+  text-shadow:0 0 8px #000,0 0 18px #000,0 2px 2px #000;opacity:0;transition:opacity .8s;line-height:1.6}
+#sub .ko{font-family:"Noto Sans KR",sans-serif;font-size:clamp(11px,1.05vw,14px);letter-spacing:.12em;color:#b9b2a7;margin-top:8px;
+  text-shadow:0 0 6px #000,0 1px 2px #000;opacity:0;transition:opacity .8s .15s}
+#sub.show .zh,#sub.show .ko{opacity:1}
+#skip{position:absolute;right:clamp(20px,3vw,48px);bottom:calc(11vh/2 - 14px);z-index:4;font-size:11px;letter-spacing:.3em;color:#77716a;cursor:pointer;padding:6px 10px;border:1px solid transparent}
+#skip:hover{color:#fff;border-color:rgba(255,255,255,.2)}
+#loc{position:absolute;left:clamp(20px,3vw,48px);top:calc(11vh + 3vh);z-index:3;font-family:"Noto Sans KR";font-size:11px;letter-spacing:.35em;color:#c9c2b7;opacity:0;transition:opacity 1s;text-shadow:0 0 8px #000}
+#loc.show{opacity:.85}
+#loc b{display:block;font-size:10px;color:#a33;letter-spacing:.3em;margin-bottom:6px;font-weight:400}
+
+/* chapter */
+#chapter{display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000;gap:16px}
+#chapter .n{font-family:"Noto Sans KR";font-size:12px;letter-spacing:.8em;color:#a32222;padding-left:.8em}
+#chapter .t{font-family:"Noto Serif SC";font-weight:900;font-size:clamp(34px,5vw,64px);letter-spacing:.4em;padding-left:.4em}
+#chapter .k{font-family:"Noto Serif KR";font-size:15px;letter-spacing:.6em;color:#8f897f;padding-left:.6em}
+#chapter .tbc{margin-top:46px;font-size:13px;letter-spacing:.5em;color:#6b665f;padding-left:.5em;text-align:center;line-height:2.2}
+#chapter .btn{margin-top:30px}
+#nogl{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;text-align:center;line-height:2;color:#aaa;background:#000;font-size:14px}
+</style>
 </head>
 <body>
-  <!-- ========== 主菜单 ========== -->
-  <section id="menu" class="screen active">
-    <div id="menu-bg">
-      <div class="menu-photo" id="menu-photo"></div>
-      <div id="menu-3d"></div>
-      <canvas id="menu-rain"></canvas>
-      <div class="menu-flash" id="menu-flash"></div>
-    </div>
-    <div class="menu-overlay"></div>
+<canvas id="gl"></canvas>
+<canvas id="fx"></canvas>
+<div id="vig"></div><div id="scan"></div>
+<div id="black"></div>
 
-    <div class="menu-top">
-      <span class="tag-live"><i></i> 긴급재난문자 · EMERGENCY ALERT</span>
-      <span class="menu-clock" id="menu-clock">SEOUL 02:47</span>
-    </div>
+<div id="boot" class="layer on">
+  <div class="warn">⚠ 본 게임에는 공포 요소가 포함되어 있습니다</div>
+  <div class="enter">点 击 进 入<small>클릭하여 시작</small></div>
+  <div class="load" id="loadTxt">렌더러 준비 중 · 正在准备渲染器…</div>
+  <div class="hp">建议佩戴耳机并在黑暗环境中游玩<br>이어폰 착용 및 어두운 환경을 권장합니다</div>
+</div>
 
-    <div class="menu-content">
-      <div class="presents">YUAN JIAHAO PRESENTS</div>
-      <h1 class="title">
-        <span class="title-kr">서울<em>:</em> 심연</span>
-        <span class="title-en">SEOUL&nbsp;ABYSS</span>
-        <span class="title-cn">首 尔 · 深 渊 感 染</span>
-      </h1>
+<div id="presents" class="layer">
+  <div class="sub">A GAME BY</div>
+  <div class="name">YUAN JIAHAO</div>
+  <div class="line"></div>
+  <div class="sub">작품 · 作品</div>
+</div>
 
-      <nav class="menu-nav">
-        <button id="btn-start" class="menu-btn primary">
-          <span class="cn">开始游戏</span><span class="kr">게임 시작</span>
-        </button>
-        <button id="btn-controls" class="menu-btn">
-          <span class="cn">操作说明</span><span class="kr">조작법</span>
-        </button>
-        <button class="menu-btn disabled" title="后续版本开放">
-          <span class="cn">继续游戏</span><span class="kr">이어하기 · 준비 중</span>
-        </button>
-      </nav>
-    </div>
-
-    <div class="menu-player">
-      <div class="label">SURVIVOR / 생존자</div>
-      <div class="name">Yuan Jiahao</div>
-      <div class="sub">서울 소재 대학교 재학생 · 首尔在读大学生</div>
-    </div>
-
-    <div class="menu-footer">
-      <span>© 2026 Yuan Jiahao · A Game by Yuan Jiahao</span>
-      <span>建议佩戴耳机 · 헤드폰 착용 권장</span>
-    </div>
-
-    <div class="ticker"><div class="ticker-inner" id="ticker"></div></div>
-  </section>
-
-  <!-- 操作说明弹窗 -->
-  <div id="controls-modal" class="modal hidden">
-    <div class="modal-box">
-      <h2>操作说明 <small>조작법</small></h2>
-      <ul class="keys">
-        <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>移动</span></li>
-        <li><kbd>鼠标</kbd><span>环顾四周</span></li>
-        <li><kbd>Shift</kbd><span>奔跑（会发出声音，消耗体力）</span></li>
-        <li><kbd>C</kbd><span>蹲伏潜行（更安静，不易被发现）</span></li>
-        <li><kbd>F</kbd><span>开 / 关手电筒（开灯更容易被丧尸看见）</span></li>
-        <li><kbd>E</kbd><span>拾取物资 / 互动</span></li>
-        <li><kbd>Esc</kbd><span>暂停</span></li>
-      </ul>
-      <p class="tip">目标：在街区中搜集物资，避开丧尸，返回你的出租屋（원룸）。</p>
-      <button class="menu-btn small" data-close>关闭 · 닫기</button>
-    </div>
+<div id="menu" class="layer">
+  <div class="hud">
+    <div class="live">LIVE · 긴급 방송</div>
+    <div>서울특별시 중구 · <span id="clock">23:47</span></div>
+    <div>비 · 4°C · 정전 지역 확대</div>
   </div>
+  <div class="left">
+    <div class="tag">제1장 · 봉쇄의 밤</div>
+    <h1 id="title">서울 심연<span class="glitch">서울 심연</span></h1>
+    <div class="en">SEOUL ABYSS</div>
+    <div class="zh">首 尔 深 渊</div>
+    <div class="by">A GAME BY <b>YUAN JIAHAO</b></div>
+    <nav id="nav">
+      <div class="mi primary sel" data-act="start"><span class="t">开始游戏</span><span class="k">게임 시작</span></div>
+      <div class="mi dis" data-act="cont"><span class="t">继续游戏</span><span class="k">이어하기</span></div>
+      <div class="mi" data-act="settings"><span class="t">设置</span><span class="k">설정</span></div>
+      <div class="mi" data-act="credits"><span class="t">制作人员</span><span class="k">제작진</span></div>
+    </nav>
+  </div>
+  <div class="keys">↑ ↓ 选择 · ENTER 确认</div>
+  <div class="copy">© 2026 YUAN JIAHAO · v0.1</div>
+  <div class="ticker"><div class="lab">긴급재난문자</div>
+    <div class="run">[서울특별시] 원인불명 감염병 확산. 시민 여러분은 외출을 자제하고 문을 잠근 채 실내에 머무르십시오. 감염 의심자와의 접촉을 피하십시오. ── [首尔特别市] 不明原因传染病正在扩散。请市民避免外出，锁好门窗留在室内，避免与疑似感染者接触。 ── 한강 이남 교량 전면 통제 · 지하철 전 노선 운행 중단 · 汉江以南桥梁全面管制 · 地铁全线停运 ──</div></div>
+</div>
 
-  <!-- ========== 开场剧情 ========== -->
-  <section id="intro" class="screen">
-    <canvas id="intro-bg"></canvas>
-    <div class="frame" id="frame-a"></div>
-    <div class="frame" id="frame-b"></div>
-    <div class="intro-vignette"></div>
-    <div class="intro-grain"></div>
-    <div class="intro-caption" id="intro-caption"></div>
-    <div class="subtitle" id="subtitle">
-      <div class="sub-cn" id="sub-cn"></div>
-      <div class="sub-kr" id="sub-kr"></div>
-    </div>
-    <button class="skip" id="btn-skip">跳过 · 건너뛰기 ▸▸</button>
-  </section>
+<div id="intro" class="layer">
+  <div class="bar top"></div><div class="bar bot"></div>
+  <div id="loc"><b>REC ●</b><span id="locTxt"></span></div>
+  <div id="sub"><div class="zh" id="subZh"></div><div class="ko" id="subKo"></div></div>
+  <div id="skip">跳过 SKIP · ESC</div>
+</div>
 
-  <!-- ========== 游戏 ========== -->
-  <section id="game" class="screen">
-    <div id="game-canvas"></div>
-    <div class="grain"></div>
-    <div class="vignette" id="vignette"></div>
-    <div class="damage" id="damage"></div>
+<div id="chapter" class="layer">
+  <div class="n">CHAPTER 01</div>
+  <div class="t">封锁之夜</div>
+  <div class="k">제1장 · 봉쇄의 밤</div>
+  <div class="tbc">— 未 完 待 续 —<br><span style="font-size:11px;letter-spacing:.3em">后续章节开发中 · 다음 장은 준비 중입니다</span></div>
+  <button class="btn" id="backMenu">返回主菜单 · 메인 메뉴</button>
+</div>
 
-    <div class="hud">
-      <div class="hud-tl">
-        <div class="objective"><b>目标</b><span id="objective">搜集物资，返回你的出租屋（원룸）</span></div>
-      </div>
-      <div class="hud-bl">
-        <div class="bar"><label>生命 HP</label><div class="track"><div id="hp" class="fill hp"></div></div></div>
-        <div class="bar"><label>体力 STA</label><div class="track"><div id="sta" class="fill sta"></div></div></div>
-        <div class="bar"><label>电量 🔦</label><div class="track"><div id="bat" class="fill bat"></div></div></div>
-      </div>
-      <div class="hud-br" id="inventory"></div>
-      <div class="noise-meter" id="noise"><span>声响</span><div class="dots"><i></i><i></i><i></i><i></i><i></i></div></div>
-      <div class="crosshair"></div>
-      <div class="prompt" id="prompt"></div>
-      <div class="toast" id="toast"></div>
-      <div class="danger" id="danger">⚠ 它发现你了 · 들켰다</div>
-    </div>
+<div id="pSettings" class="panel"><div class="box">
+  <h2>设置<small>설정 · SETTINGS</small></h2>
+  <div class="row"><span>主音量<small>마스터 볼륨</small></span><input type="range" id="vol" min="0" max="100" value="80"></div>
+  <div class="row"><span>韩语旁白<small>한국어 내레이션</small></span><div class="seg" id="segVoice"><button data-v="1" class="on">开</button><button data-v="0">关</button></div></div>
+  <div class="row"><span>画质<small>그래픽 품질</small></span><div class="seg" id="segQ"><button data-q="low">低</button><button data-q="med" class="on">中</button><button data-q="high">高</button></div></div>
+  <div class="note" id="voiceNote"></div>
+  <button class="btn" data-close>返回 · 돌아가기</button>
+</div></div>
 
-    <div class="overlay" id="click-to-play">
-      <div>
-        <h2>点击屏幕进入</h2>
-        <p>클릭하여 시작 · WASD 移动 · 鼠标环顾</p>
-      </div>
-    </div>
+<div id="pCredits" class="panel"><div class="box credits">
+  <h2>制作人员<small>제작진 · CREDITS</small></h2>
+  <p style="margin-top:18px">策划 · 制作 · 导演<br><b>YUAN JIAHAO</b></p>
+  <p>画面 · 实时光线步进渲染（WebGL2）<br>音效 · 程序化合成（Web Audio）<br>旁白 · 韩语语音合成</p>
+  <button class="btn" data-close>返回 · 돌아가기</button>
+</div></div>
 
-    <div class="overlay hidden" id="pause">
-      <div>
-        <h2>暂停 <small>일시정지</small></h2>
-        <button class="menu-btn small" id="btn-resume">继续 · 계속</button>
-        <button class="menu-btn small" id="btn-quit">返回主菜单 · 메인 메뉴</button>
-      </div>
-    </div>
+<div id="nogl">你的浏览器不支持 WebGL2，无法渲染画面。<br>请使用最新版 Chrome / Edge / Safari 打开。</div>
 
-    <div class="overlay end hidden" id="end">
-      <div>
-        <h2 id="end-title">你被感染了</h2>
-        <p id="end-sub">당신은 감염되었습니다</p>
-        <p id="end-stats" class="stats"></p>
-        <button class="menu-btn small" id="btn-retry">再来一次 · 다시 하기</button>
-        <button class="menu-btn small" id="btn-menu">主菜单 · 메인 메뉴</button>
-      </div>
-    </div>
+<script id="fs" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+precision highp int;
+uniform vec2 uRes;
+uniform float uTime, uFlash, uAlarm, uFade, uFog, uExpo;
+uniform int uScene, uSteps, uNL;
+uniform vec3 uRo, uTa;
+uniform vec3 uLP[20];
+uniform vec3 uLC[20];
+uniform vec2 uLK[20];
+uniform vec4 uBld[32];
+uniform vec3 uBldC[32];
+uniform sampler2D uAtlas;
+out vec4 fragColor;
 
-    <div class="loading hidden" id="loading">正在载入首尔… 서울을 불러오는 중…</div>
-  </section>
+#define PI 3.14159265
+float h11(float p){ p=fract(p*.1031); p*=p+33.33; p*=p+p; return fract(p);}
+float h21(vec2 p){ vec3 p3=fract(vec3(p.xyx)*.1031); p3+=dot(p3,p3.yzx+33.33); return fract((p3.x+p3.y)*p3.z);}
+float noise(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
+  return mix(mix(h21(i),h21(i+vec2(1,0)),f.x), mix(h21(i+vec2(0,1)),h21(i+vec2(1,1)),f.x), f.y);}
+float fbm(vec2 p){ float a=.5,s=0.; for(int i=0;i<5;i++){ s+=a*noise(p); p=p*2.03+vec2(1.7,9.2); a*=.5;} return s;}
+float sdBox(vec3 p, vec3 b){ vec3 q=abs(p)-b; return length(max(q,0.))+min(max(q.x,max(q.y,q.z)),0.);}
+float sdCap(vec3 p, vec3 a, vec3 b, float r){ vec3 pa=p-a, ba=b-a; float h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.); return length(pa-ba*h)-r;}
+float sdCylY(vec3 p, float r, float h){ vec2 d=abs(vec2(length(p.xz),p.y))-vec2(r,h); return min(max(d.x,d.y),0.)+length(max(d,0.));}
+float smin(float a, float b, float k){ float h=clamp(.5+.5*(b-a)/k,0.,1.); return mix(b,a,h)-k*h*(1.-h);}
+mat2 rot(float a){ float c=cos(a),s=sin(a); return mat2(c,-s,s,c);}
 
-  <script type="module" src="main.js"></script>
+/* ---------- infected figure (generic, contorted, twitching) ---------- */
+float zombie(vec3 p, float sd, float t, float agit){
+  float bb = length(p-vec3(0.,1.,0.)) - 1.2;
+  if(bb>.3) return bb;
+  float k = floor(t*(7.+agit*9.)+sd*17.);
+  float tw = (h11(k)>.84-agit*.5 ? (h11(k+3.1)-.5) : 0.)*(1.+agit*1.5);
+  float sw = sin(t*1.1+sd*5.)*.08 + agit*.05*sin(t*31.+sd);
+  float gait = sin(t*2.2+sd*3.);
+  vec3 q = p;
+  q.x -= sw*smoothstep(0.,1.8,q.y);
+  vec3 hipL=vec3(-.11,.92,0.), hipR=vec3(.11,.92,0.);
+  vec3 kneeL=vec3(-.13,.48,-.06+.05*gait), kneeR=vec3(.14,.5,-.02-.05*gait);
+  vec3 ftL=vec3(-.16,.06,.02+.1*gait), ftR=vec3(.2,.06,.1);
+  float d = min(sdCap(q,hipL,kneeL,.08), sdCap(q,kneeL,ftL,.062));
+  d = min(d, min(sdCap(q,hipR,kneeR,.08), sdCap(q,kneeR,ftR,.062)));
+  vec3 ch = vec3(.05+tw*.15, 1.37, -.17);
+  d = smin(d, sdCap(q, vec3(0.,.95,0.), ch, .165), .08);
+  d = smin(d, sdCap(q, ch+vec3(-.2,.02,.03), ch+vec3(.2,-.05,-.02), .1), .06);
+  vec3 hd = ch + vec3(.15+tw*.4, .19-abs(tw)*.1, -.1);
+  d = smin(d, sdCap(q, ch+vec3(0.,.05,0.), hd, .055), .04);
+  d = smin(d, length((q-hd-vec3(.03,.07,-.02))*vec3(1.,.9,1.))-.112, .03);
+  vec3 shL = ch+vec3(-.21,0.,.03), shR = ch+vec3(.2,-.04,-.02);
+  vec3 elL = shL+vec3(-.06,-.3,-.04), haL=elL+vec3(.02,-.28,-.07+.05*sin(t*3.+sd));
+  vec3 elR = shR+vec3(.09,-.1,-.26-tw*.25), haR = elR+vec3(.06,.03+tw*.5,-.27);
+  d = smin(d, min(sdCap(q,shL,elL,.055), sdCap(q,elL,haL,.045)), .03);
+  d = smin(d, min(sdCap(q,shR,elR,.055), sdCap(q,elR,haR,.045)), .03);
+  return d;
+}
+
+/* ---------- city ---------- */
+vec4 bld(float cid, float side){ int i=int(mod(cid,16.)) + (side>0.?16:0); return uBld[i]; }
+vec3 bldC(float cid, float side){ int i=int(mod(cid,16.)) + (side>0.?16:0); return uBldC[i]; }
+
+const vec3 ZP0=vec3(-1.6,0.,21.), ZP1=vec3(3.9,0.,33.), ZP2=vec3(0.9,0.,47.), ZP3=vec3(-3.4,0.,39.), ZP4=vec3(-.3,0.,62.);
+float cityZombies(vec3 p){
+  float d=1e5; float t=uTime;
+  vec3 q;
+  q=p-ZP0; q.xz=rot(.25)*q.xz; d=min(d,zombie(q,1.,t,0.));
+  q=p-ZP1; q.xz=rot(-.5)*q.xz; d=min(d,zombie(q,2.,t,0.));
+  q=p-(ZP2+vec3(sin(t*.15)*1.5,0.,0.)); q.xz=rot(.1)*q.xz; d=min(d,zombie(q,3.,t,.2));
+  q=p-ZP3; q.xz=rot(1.2)*q.xz; d=min(d,zombie(q,4.,t,0.));
+  q=p-ZP4; d=min(d,zombie(q,5.,t,.4));
+  return d;
+}
+vec2 mapCity(vec3 p){
+  vec2 res = vec2(p.y, 1.);
+  float ax = abs(p.x);
+  float sw = max(6.-ax, p.y-.15);
+  if(sw<res.x) res=vec2(sw,2.);
+  float side = p.x>0.?1.:-1.;
+  float qx = ax-10.5;
+  float cid = floor(p.z/14.);
+  float lz = p.z-(cid+.5)*14.;
+  vec4 B = bld(cid, side);
+  float b = sdBox(vec3(qx-15., p.y-B.x*.5, lz), vec3(15., B.x*.5, 6.));
+  b = min(b, max(max(-qx,0.), 8.-abs(lz)));
+  if(b<res.x) res=vec2(b,3.);
+  vec3 lp = vec3(ax-6.6, p.y, p.z - 20.*floor(p.z/20.+.5));
+  float pole = sdCap(lp, vec3(0.), vec3(0.,6.2,0.), .07);
+  pole = min(pole, sdCap(lp, vec3(0.,6.2,0.), vec3(-1.1,6.4,0.), .05));
+  pole = min(pole, sdBox(lp-vec3(-1.15,6.33,0.), vec3(.3,.06,.13)));
+  if(pole<res.x) res=vec2(pole,4.);
+  vec3 cp = p - vec3(2.6,0.,28.); cp.xz = rot(.5)*cp.xz;
+  float car = sdBox(cp-vec3(0.,.62,0.), vec3(.82,.36,2.15))-.14;
+  car = smin(car, sdBox(cp-vec3(0.,1.12,-.15), vec3(.72,.28,1.05))-.1, .15);
+  if(car<res.x) res=vec2(car,5.);
+  float z = cityZombies(p);
+  if(z<res.x) res=vec2(z,6.);
+  return res;
+}
+
+/* ---------- port ---------- */
+const vec3 FL0=vec3(-30.,22.,0.), FL1=vec3(-6.,22.,32.), FL2=vec3(9.,22.,-24.), FL3=vec3(21.,22.,58.), FL4=vec3(-22.,22.,56.), FL5=vec3(24.,22.,6.);
+float flPole(vec3 p, vec3 f){ return sdCap(p, vec3(f.x,0.,f.z), vec3(f.x,f.y,f.z), .35); }
+vec2 mapPort(vec3 p){
+  vec2 res = vec2(max(p.y, p.x-30.), 20.);
+  float w = p.y+2.2 + .06*sin(p.x*.7+uTime*1.3)*sin(p.z*.5+uTime);
+  if(w<res.x) res=vec2(w,8.);
+  if(p.x<27. && p.x>-70. && p.y<14.){
+    float ix=floor(p.x/3.), iz=floor(p.z/13.);
+    vec2 l = vec2(p.x-(ix+.5)*3., p.z-(iz+.5)*13.);
+    float n = floor(h21(vec2(ix,iz)+.5)*5.);
+    if(mod(ix,5.)==4.) n=0.;
+    float dc = 1e5;
+    if(n>0.) dc = sdBox(vec3(l.x, p.y-n*1.3, l.y), vec3(1.22, n*1.3, 6.));
+    dc = min(dc, max(max(min(1.78-abs(l.x), 7.-abs(l.y)), p.y-13.), .22));
+    if(dc<res.x) res=vec2(dc,7.);
+  } else if(p.x<=-70.||p.y>=14.){
+    float dc = p.x<=-70. ? -70.-p.x+.05 : p.y-13.;
+    if(p.x>-70. && dc<res.x) res=vec2(dc,7.);
+  }
+  float bio = sdBox(p-vec3(-1.5,1.3,4.), vec3(1.22,1.3,6.));
+  if(bio<res.x) res=vec2(bio,16.);
+  // cranes
+  for(int i=0;i<2;i++){
+    float cz = i==0? -16. : 26.;
+    vec3 q = p-vec3(0.,0.,cz); q.z=abs(q.z);
+    float c = sdBox(q-vec3(21.,15.,6.), vec3(.55,15.,.55));
+    c = min(c, sdBox(q-vec3(29.,15.,6.), vec3(.55,15.,.55)));
+    c = min(c, sdBox(q-vec3(42.,30.5,6.), vec3(30.,.8,.6)));
+    c = min(c, sdBox(q-vec3(25.,30.5,0.), vec3(4.6,.6,6.)));
+    c = min(c, sdBox(q-vec3(25.,10.,6.), vec3(4.,.4,.4)));
+    c = min(c, sdBox(q-vec3(24.,33.,0.), vec3(3.,2.,3.)));
+    if(c<res.x) res=vec2(c,9.);
+  }
+  float hull = sdBox(p-vec3(56.,1.5,10.), vec3(9.,4.,55.))-.5;
+  float sup = sdBox(p-vec3(56.,10.,52.), vec3(7.,5.5,5.));
+  float sh = min(hull,sup);
+  if(sh<res.x) res=vec2(sh,10.);
+  float fp = min(min(flPole(p,FL0),flPole(p,FL1)),min(min(flPole(p,FL2),flPole(p,FL3)),min(flPole(p,FL4),flPole(p,FL5))));
+  if(fp<res.x) res=vec2(fp,4.);
+  return res;
+}
+
+/* ---------- lab ---------- */
+vec2 mapLab(vec3 p){
+  float room = -sdBox(p-vec3(0.,1.6,27.), vec3(3.,1.6,33.));
+  vec2 res = vec2(room, 11.);
+  float lzc = clamp(floor((p.z-2.)/4.+.5),0.,13.)*4.+2.;
+  float cl = sdBox(vec3(p.x, p.y-3.17, p.z-lzc), vec3(.35,.05,.9));
+  if(cl<res.x) res=vec2(cl,13.);
+  float pp = length(vec2(abs(p.x)-2.6, p.y-2.92))-.09;
+  pp = min(pp, length(vec2(abs(p.x)-2.35, p.y-2.98))-.05);
+  if(pp<res.x) res=vec2(pp,9.);
+  float tzc = clamp(floor((p.z-5.)/5.+.5),0.,9.)*5.+5.;
+  vec3 tp = vec3(abs(p.x)-2.2, p.y, p.z-tzc);
+  float tk = sdCylY(tp-vec3(0.,1.25,0.), .5, 1.0);
+  if(tk<res.x) res = vec2(tk,14.);
+  float mt = min(sdCylY(tp-vec3(0.,.12,0.), .58, .12), sdCylY(tp-vec3(0.,2.35,0.), .58, .1));
+  if(mt<res.x) res=vec2(mt,9.);
+  if(uAlarm>.5){
+    vec3 zp = p-vec3(.3,0.,10.); zp.xz=rot(.35)*zp.xz;
+    float z = zombie(zp, 7., uTime, 1.);
+    if(z<res.x) res=vec2(z,6.);
+  }
+  return res;
+}
+
+vec2 map(vec3 p){
+  if(uScene==0) return mapCity(p);
+  if(uScene==1) return mapPort(p);
+  return mapLab(p);
+}
+
+vec3 calcN(vec3 p, float t){
+  float e = .0015*max(1.,t*.5);
+  vec2 k=vec2(1.,-1.);
+  return normalize(k.xyy*map(p+k.xyy*e).x + k.yyx*map(p+k.yyx*e).x + k.yxy*map(p+k.yxy*e).x + k.xxx*map(p+k.xxx*e).x);
+}
+
+vec2 march(vec3 ro, vec3 rd, float maxd, int steps){
+  float t=.04; float m=-1.;
+  for(int i=0;i<200;i++){
+    if(i>=steps) break;
+    vec2 h=map(ro+rd*t);
+    if(h.x<.0012*t){ m=h.y; break; }
+    t+=h.x*.9;
+    if(t>maxd) break;
+  }
+  if(t>maxd) m=-1.;
+  return vec2(t,m);
+}
+
+float softShadow(vec3 ro, vec3 rd, float maxt){
+  float res=1., t=.06;
+  for(int i=0;i<26;i++){
+    float h=map(ro+rd*t).x;
+    res=min(res, 9.*h/t);
+    t+=clamp(h,.06,1.2);
+    if(res<.02||t>maxt-.3) break;
+  }
+  return clamp(res,0.,1.);
+}
+
+vec3 spotDir(int i){
+  float a = uTime*3.2 + uLK[i].y;
+  return normalize(vec3(cos(a), -.35, sin(a)));
+}
+
+vec3 ambient(vec3 n){
+  if(uScene==2){
+    return uAlarm>.5 ? vec3(.012,.002,.002)*(.6+.4*n.y) : vec3(.012,.018,.02)*(.6+.4*n.y);
+  }
+  vec3 a = vec3(.022,.027,.04)*(.55+.45*n.y);
+  a += vec3(.012,.006,.003)*max(-n.y,0.);
+  return a;
+}
+
+vec3 lighting(vec3 p, vec3 n, vec3 rd, vec3 alb, float rough, bool sh){
+  vec3 acc=vec3(0); float best=0.; int bi=-1; vec3 bestC=vec3(0);
+  for(int i=0;i<20;i++){
+    if(i>=uNL) break;
+    vec3 L = uLP[i]-p; float d2=dot(L,L); float d=sqrt(d2); vec3 l=L/d;
+    float ty=uLK[i].x;
+    float cone=1.;
+    if(ty>.5 && ty<1.5) cone = mix(.06,1., smoothstep(.15,.85,-l.y));
+    else if(ty>1.5) cone = .04 + 1.4*pow(max(dot(-l,spotDir(i)),0.),5.);
+    float dif=max(dot(n,l),0.);
+    vec3 h=normalize(l-rd);
+    float sp = pow(max(dot(n,h),0.), mix(6.,160.,1.-rough))*(1.-rough)*2.;
+    vec3 c = uLC[i]*cone/(d2+.3)*dif*(alb+sp);
+    float lum = dot(c, vec3(.3,.6,.1));
+    if(lum>best){best=lum;bi=i;bestC=c;}
+    acc+=c;
+  }
+  if(sh && bi>=0 && best>.002){
+    vec3 L=uLP[bi]-p;
+    float s=softShadow(p+n*.03, normalize(L), length(L));
+    acc -= bestC*(1.-s);
+  }
+  if(uFlash>0. && uScene<2){
+    vec3 fl=normalize(vec3(-.4,1.,.3));
+    acc += alb*max(dot(n,fl),0.)*uFlash*vec3(.55,.62,.85);
+  }
+  acc += alb*ambient(n);
+  return acc;
+}
+
+vec3 fogColor(){
+  if(uScene==2) return uAlarm>.5 ? vec3(.012,.002,.002) : vec3(.006,.009,.01);
+  return vec3(.014,.017,.024) + uFlash*vec3(.12,.13,.17);
+}
+
+vec3 scatter(vec3 ro, vec3 rd, float t){
+  vec3 s=vec3(0);
+  for(int i=0;i<20;i++){
+    if(i>=uNL) break;
+    vec3 q=ro-uLP[i]; float b=dot(rd,q); float c=dot(q,q);
+    float h=sqrt(max(c-b*b,1e-4));
+    float I=(atan((t+b)/h)-atan(b/h))/h;
+    float ty=uLK[i].x; float cone=1.;
+    vec3 cp = ro+rd*clamp(-b,0.,t); vec3 dl = normalize(cp-uLP[i]);
+    if(ty>.5&&ty<1.5) cone = mix(.12,1.,smoothstep(0.,.8,-dl.y));
+    else if(ty>1.5) cone = .08 + 2.5*pow(max(dot(dl,spotDir(i)),0.),10.);
+    float att = exp(-uFog*max(-b,0.)*.7);
+    s += uLC[i]*I*cone*att;
+  }
+  return s*uFog*(uScene==1? .035 : .07);
+}
+
+vec3 applyFog(vec3 col, vec3 ro, vec3 rd, float t){
+  float T = exp(-uFog*t);
+  return col*T + fogColor()*(1.-T) + scatter(ro,rd,t);
+}
+
+vec3 sky(vec3 rd){
+  if(uScene==2) return vec3(0.);
+  float e = rd.y;
+  vec3 col = mix(vec3(.05,.032,.025), vec3(.010,.012,.018), smoothstep(-.02,.35,e));
+  vec2 cuv = rd.xz/(max(e,.02)+.12)*.9 + vec2(uTime*.012, uTime*.004);
+  float cl = fbm(cuv);
+  col = mix(col, col*1.9+vec3(.018,.012,.008), smoothstep(.4,.85,cl)*smoothstep(-.05,.3,e));
+  col += uFlash*vec3(.45,.5,.65)*(.25+cl)*smoothstep(-.1,.4,e);
+  if(uScene==0){
+    float a = atan(rd.x, rd.z);
+    float hill = .012 + .01*noise(vec2(a*14.,1.)) + .045*exp(-pow(a/.09,2.));
+    float ta = a-.012;
+    float base = .057;
+    bool tower = (abs(ta)<.0026 && e < base+.07) || length(vec2(ta, (e-(base+.058))*1.7))<.0068 || (abs(ta)<.0008 && e<base+.112);
+    if(e<hill || tower){
+      col = vec3(.006,.006,.008)+uFlash*.04;
+      vec2 g = vec2(a*420., e*420.); float lh = h21(floor(g));
+      if(lh>.988 && e<hill-.004 && !tower) col += vec3(1.,.55,.25)*.12;
+    }
+    float bl = step(.55, fract(uTime*.45));
+    col += vec3(1.,.05,.02)*bl*smoothstep(.004,.0, length(vec2(ta, e-(base+.112))))*1.5;
+    col += vec3(.3,.1,.025)*exp(-pow((a+.3)/.07,2.))*exp(-max(e,0.)*22.)*(.7+.3*noise(vec2(uTime*2.,0.)));
+  }
+  if(uScene==1){
+    col += vec3(.02,.012,.006)*exp(-max(e,0.)*12.);
+  }
+  return col;
+}
+
+/* ---------- materials ---------- */
+float puddle(vec2 xz){ return smoothstep(.48,.62, fbm(xz*.22+3.1)); }
+vec3 ripple(vec2 xz, float t){
+  vec2 g = xz*2.2; vec2 id=floor(g); vec2 f=fract(g)-.5;
+  float h = h21(id); float ph = fract(t*1.3+h);
+  float r = length(f+vec2(h-.5,fract(h*7.)-.5)*.4);
+  float w = sin((r-ph*.5)*40.)*smoothstep(.5,0.,r)*(1.-ph);
+  return vec3(f.x, 0., f.y)*w*.25;
+}
+
+void material(vec3 p, inout vec3 n, float m, vec3 rd, out vec3 alb, out vec3 emi, out float rough, out float refl){
+  alb=vec3(.1); emi=vec3(0); rough=.7; refl=0.;
+  float t=uTime;
+  if(m<1.5){ // road
+    float nz=fbm(p.xz*1.7);
+    alb = vec3(.035,.036,.038)*(.7+.6*nz);
+    float ax=abs(p.x);
+    if(abs(ax-.18)<.07) alb=vec3(.32,.24,.05);
+    if(abs(ax-3.)<.07 && mod(p.z,9.)<4.5) alb=vec3(.3);
+    if(p.z>8. && p.z<13. && mod(p.x+.3,1.4)<.7 && ax<5.6) alb=vec3(.28);
+    float bl = smoothstep(.62,.7,fbm(p.xz*.45+9.));
+    alb = mix(alb, vec3(.06,.005,.004), bl*.8);
+    float pd = puddle(p.xz);
+    rough = mix(.55,.04,pd);
+    refl = mix(.18,.85,pd);
+    n = normalize(n + ripple(p.xz,t)*pd + vec3(nz-.5,0.,fbm(p.zx*1.7)-.5)*.04);
+  } else if(m<2.5){ // sidewalk
+    vec2 g = fract(p.xz*1.5);
+    float seam = step(.94,max(g.x,g.y));
+    alb = vec3(.07,.068,.065)*(1.-seam*.6)*(.8+.4*h21(floor(p.xz*1.5)));
+    if(abs(p.y-.15)>.01) alb=vec3(.12);
+    float pd = puddle(p.xz+7.)*.7;
+    rough = mix(.6,.1,pd); refl=mix(.1,.6,pd);
+  } else if(m<3.5){ // building
+    float side = p.x>0.?1.:-1.;
+    float cid = floor(p.z/14.);
+    float lz = p.z-(cid+.5)*14.;
+    float qx = abs(p.x)-10.5;
+    vec4 B = bld(cid, side);
+    float bh = h21(vec2(cid,side*3.));
+    vec3 base = mix(vec3(.11,.105,.1), vec3(.16,.13,.1), bh);
+    if(bh>.7) base = vec3(.06,.065,.07);
+    float grime = fbm(vec2(lz*.3,p.y*.15)+cid);
+    alb = base*(.55+.6*grime)*(1.-.4*smoothstep(3.,0.,p.y));
+    rough=.85;
+    float u,v=p.y; bool face = abs(n.x)>.5;
+    u = face ? lz : qx;
+    if(n.y>.5){ alb=vec3(.03); }
+    else if(v<3.6){
+      if(face && B.w>.01 && u>-3.5 && u<3.5 && v>.3 && v<2.9){
+        emi = vec3(.75,.92,1.)*B.w*1.6*(.85+.15*fbm(vec2(u*2.,v*3.)));
+        alb=vec3(0.); rough=.1;
+      } else {
+        float rib = .5+.5*sin(v*28.);
+        alb = vec3(.09,.09,.095)*(.6+.4*rib)*(.6+.6*grime);
+        rough=.5;
+      }
+    } else {
+      vec2 cell = vec2(3.2,3.4);
+      vec2 wid = floor(vec2(u,v-3.6)/cell);
+      vec2 f = fract(vec2(u,v-3.6)/cell);
+      if(f.x>.14 && f.x<.86 && f.y>.24 && f.y<.82){
+        float hw = h21(wid+vec2(cid*7.3,side*13.1));
+        alb = vec3(.012); rough=.08;
+        if(hw>.88){
+          vec3 wc = mix(vec3(1.,.62,.32), vec3(.62,.8,1.), step(.95,hw));
+          float fl = hw>.985 ? step(.35,noise(vec2(t*9.,hw*50.))) : 1.;
+          float curtain = .5+.5*smoothstep(.3,.7,noise(vec2(f.x*3.,hw*20.)));
+          emi = wc*.9*fl*curtain*(.6+.4*fract(hw*91.));
+        }
+      }
+    }
+    // vertical neon sign
+    if(face && B.y>-.5){
+      float su = (lz+5.3)/1.0, sv=(p.y-4.2)/5.2;
+      if(su>0. && su<1. && sv>0. && sv<1.){
+        float suu = side>0. ? 1.-su : su;
+        vec3 tx = texture(uAtlas, vec2((B.y+suu)/8., 1.-sv)).rgb;
+        emi = bldC(cid,side)*tx*B.z*6. + vec3(.02)*tx.g;
+        alb = vec3(.02)+tx*.05; rough=.3;
+      }
+    }
+  } else if(m<4.5){ // poles / lamp heads
+    alb = vec3(.05,.05,.055); rough=.4;
+    if(n.y<-.5){
+      float bd=1e5; vec3 bc=vec3(0);
+      for(int i=0;i<20;i++){ if(i>=uNL) break; float d=length(uLP[i]-p); if(d<bd){bd=d;bc=uLC[i];} }
+      if(bd<1.6) emi = bc*(uScene==1? .004 : .04);
+    }
+  } else if(m<5.5){ // car
+    alb = vec3(.05,.06,.065); rough=.25;
+    vec3 cp = p - vec3(2.6,0.,28.); cp.xz = rot(.5)*cp.xz;
+    if(cp.y>.95 && abs(cp.z+.15)<1.05) { alb=vec3(.01); rough=.05; }
+    if(uNL>16 && abs(abs(cp.x)-.65)<.18 && abs(abs(cp.z)-2.2)<.2 && abs(cp.y-.75)<.12) emi = uLC[16]*.25;
+  } else if(m<6.5){ // infected
+    float y = p.y;
+    float bl = smoothstep(.55,.75,fbm(p.xy*6.+p.z));
+    if(uScene==2){
+      float dirt = fbm(p.xy*3.+p.z*2.);
+      alb = mix(vec3(.36,.37,.3)*(.7+.4*dirt), vec3(.09,.0,.0), max(bl, smoothstep(.6,.8,fbm(p.xy*9.))*.8));
+      float fold = .85+.15*sin(p.y*40.+fbm(p.xz*5.)*6.);
+      alb *= fold;
+      if(y>1.45){ alb = mix(alb, vec3(.06,.0,.0), .65); if(n.z<-.3 && y>1.55 && y<1.72){ alb=vec3(.01); rough=.05; } else rough=.9; }
+      else rough=.85;
+      if(abs(y-.95)<.04) alb=vec3(.05,.05,.04);
+    } else {
+      alb = mix(vec3(.028,.028,.032), vec3(.07,.0,.0), bl);
+      if(y>1.52) alb = vec3(.15,.14,.13)*(1.-.6*bl);
+      rough=.8;
+    }
+  } else if(m<7.5){ // containers
+    float ix=floor(p.x/3.), iz=floor(p.z/13.), lv=floor(p.y/2.6);
+    float hc = h21(vec2(ix*3.+lv, iz*5.+lv*7.));
+    vec3 pal = hc<.25? vec3(.22,.05,.035) : hc<.45? vec3(.035,.08,.16) : hc<.6? vec3(.05,.12,.07) : hc<.75? vec3(.13,.13,.12) : hc<.88? vec3(.28,.11,.03) : vec3(.3,.3,.28);
+    float rust = fbm(p.xy*.8+p.z*.3);
+    alb = mix(pal, vec3(.09,.04,.02), smoothstep(.55,.8,rust))*(.6+.5*fbm(p.zy*3.));
+    float cor = sin((abs(n.x)>.5? p.z : p.x)*9.);
+    alb *= .8+.2*cor;
+    if(fract(p.y/2.6)<.03) alb*=.3;
+    rough=.55;
+    if(abs(n.x)>.5) n = normalize(n + vec3(0.,0.,cor*.12));
+  } else if(m<8.5){ // water
+    alb=vec3(.004,.006,.008); rough=.05; refl=.9;
+    n = normalize(vec3(0.,1.,0.) + vec3(noise(p.xz*1.3+t)-.5, 0., noise(p.zx*1.1-t*.8)-.5)*.18);
+  } else if(m<9.5){ // steel
+    alb = uScene==2 ? vec3(.2,.21,.22) : vec3(.07,.075,.08);
+    rough = .35;
+  } else if(m<10.5){ // ship
+    alb = vec3(.03,.035,.04)*(.7+.5*fbm(p.zy*.5));
+    alb = mix(alb, vec3(.12,.03,.01), smoothstep(.65,.8,fbm(vec2(p.z*2.,p.y*.3))));
+    rough=.6;
+    if(p.y>5. && abs(n.x)>.5){
+      vec2 g = fract(vec2(p.z*.5,p.y*.6)); vec2 id=floor(vec2(p.z*.5,p.y*.6));
+      if(g.x>.3&&g.x<.7&&g.y>.3&&g.y<.7&&h21(id)>.75) emi=vec3(1.,.8,.5)*.7;
+    }
+  } else if(m<11.5){ // lab room
+    if(n.y>.5){
+      vec2 g=fract(p.xz*1.);
+      float seam = step(.96,max(g.x,g.y));
+      alb = vec3(.06,.065,.068)*(1.-seam*.7);
+      rough=.12; refl=.55;
+      if(uAlarm>.5){
+        float bp = length((p.xz-vec2(1.3,10.6))*vec2(1.,.75)) - 1.3 + (fbm(p.xz*2.)-.5)*.9;
+        float trail = smoothstep(.12,0.,abs(p.x-1.6-.2*sin(p.z*3.)))*step(p.z,11.)*step(8.,p.z);
+        float blood = max(smoothstep(.1,-.1,bp), trail*.8);
+        alb = mix(alb, vec3(.07,.0,.0), blood);
+        rough = mix(rough,.02,blood); refl = mix(refl,.85,blood);
+      }
+    } else if(n.y<-.5){ alb=vec3(.12); rough=.8; }
+    else {
+      float pz = fract(p.z/2.); float py = p.y;
+      alb = vec3(.32,.35,.34)*(1.-.5*step(.985,pz))*(.8+.25*fbm(p.zy*.6));
+      if(py<1.0) alb = vec3(.14,.16,.16)*(.8+.3*fbm(p.zy*2.));
+      if(abs(py-1.05)<.05) alb = vec3(.35,.28,.03);
+      alb *= 1.-.5*smoothstep(.7,.95,fbm(p.zy*.8+4.));
+      rough=.6;
+    }
+  } else if(m<13.5){ // ceiling light
+    alb=vec3(.8); rough=.5;
+    float bd=1e5; vec3 bc=vec3(0);
+    for(int i=0;i<8;i++){ if(i>=uNL) break; float d=length(uLP[i]-p); if(d<bd){bd=d;bc=uLC[i];} }
+    if(bd<1.4 && uAlarm<.5) emi = bc*.35;
+    else emi = vec3(.01);
+  } else if(m<14.5){ // specimen tank
+    float tzc = clamp(floor((p.z-5.)/5.+.5),0.,9.)*5.+5.;
+    vec3 tp = vec3(abs(p.x)-2.2, p.y, p.z-tzc);
+    float id = tzc + (p.x>0.?100.:0.);
+    float a = atan(tp.z, tp.x);
+    float cm = fbm(vec2(a*1.2, p.y*1.6)+id*1.7);
+    float body = smoothstep(.5,.42, length(vec2((a-(p.x>0.?PI:0.))*.0, p.y-1.25)*vec2(1.,.8)) - .25*cm);
+    float tent = smoothstep(.56,.62,cm)*smoothstep(.3,.8,p.y);
+    float mask = clamp(max(tent, smoothstep(.55,.45,abs(fract(a/PI*.5+.25)-.5)*2.)*smoothstep(.58,.5,cm)*0.),0.,1.);
+    mask = max(mask, body*smoothstep(.62,.45,cm));
+    float bub = smoothstep(.993,1., h21(floor(vec2(a*14., p.y*22.-t*5.))))*.5;
+    vec3 liq = vec3(.05,.55,.5)*(.55+.25*sin(p.y*6.-t*1.5)) + bub*.3;
+    bool cracked = (p.x>0. && abs(tzc-10.)<.1 && uAlarm>.5);
+    float lvl = cracked ? .95 : 2.2;
+    float fl = uAlarm>.5 ? (.55+.45*step(.3,noise(vec2(t*6.,id)))) : 1.;
+    emi = liq*(1.-.88*mask)*step(p.y,lvl)*fl*.9;
+    if(cracked) emi += vec3(.04,.0,.0);
+    alb = vec3(.02); rough=.03;
+  } else if(m<16.5){ // bio container
+    alb = vec3(.32,.32,.3)*(.7+.4*fbm(p.zy*.9));
+    float cor = sin(p.z*9.);
+    if(abs(n.x)>.5) alb *= .82+.18*cor;
+    if(abs(n.x)>.5 && p.z<1.){
+      float st = step(.5,fract((p.y+p.z)*1.2));
+      alb = mix(vec3(.4,.32,.02), vec3(.02), st);
+    }
+    if(n.z<-.5){
+      alb = vec3(.25,.25,.24)*(.7+.3*sin(p.x*20.));
+      float seam = smoothstep(.04,0.,abs(p.x+1.5));
+      float pulse = .6+.4*sin(t*2.3);
+      emi = vec3(.1,.9,.85)*seam*pulse*1.5;
+      float pool = 0.;
+      emi += vec3(.4,.0,.0)*smoothstep(.08,0.,abs(p.y-1.6))*smoothstep(.5,.1,abs(p.x+.6))*(.4+.6*step(.5,fract(t*.8)));
+    }
+    rough=.5;
+  } else if(m>19.5){ // quay concrete
+    float nz = fbm(p.xz*.9);
+    alb = vec3(.07,.07,.068)*(.7+.6*nz);
+    if(abs(fract(p.z/13.)-.5)>.46 && p.x<27.) alb = vec3(.3,.25,.05)*.6;
+    if(p.x>28.5) alb = vec3(.3,.25,.05)*.5;
+    float pd = puddle(p.xz*.8);
+    rough = mix(.6,.05,pd); refl = mix(.12,.8,pd);
+    n = normalize(n + ripple(p.xz,t)*pd);
+  }
+}
+
+vec3 shadeHit(vec3 ro, vec3 rd, float t, float m, bool primary, out vec3 pOut, out vec3 nOut, out float reflOut, out float roughOut){
+  vec3 p = ro+rd*t;
+  vec3 n = calcN(p,t);
+  vec3 alb, emi; float rough, refl;
+  material(p, n, m, rd, alb, emi, rough, refl);
+  vec3 col = lighting(p, n, rd, alb, rough, primary) + emi;
+  pOut=p; nOut=n; reflOut=refl; roughOut=rough;
+  return col;
+}
+
+vec3 aces(vec3 x){ return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.); }
+
+void main(){
+  vec2 uv = gl_FragCoord.xy/uRes;
+  vec2 q = (gl_FragCoord.xy - .5*uRes)/uRes.y;
+  vec3 ro = uRo;
+  vec3 fw = normalize(uTa-uRo);
+  vec3 rt = normalize(cross(fw, vec3(0.,1.,0.)));
+  vec3 up = cross(rt, fw);
+  vec3 rd = normalize(q.x*rt + q.y*up + 1.55*fw);
+  float maxd = uScene==2 ? 70. : 230.;
+  vec2 h = march(ro, rd, maxd, uSteps);
+  vec3 col;
+  if(h.y<0.){
+    col = sky(rd);
+    float T = exp(-uFog*90.);
+    col = mix(fogColor(), col, .5+.5*T) + scatter(ro,rd,160.);
+  } else {
+    vec3 p,n; float refl, rough;
+    col = shadeHit(ro, rd, h.x, h.y, true, p, n, refl, rough);
+    if(refl>.04){
+      vec3 r = reflect(rd, n);
+      vec3 j = vec3(h21(gl_FragCoord.xy+uTime), h21(gl_FragCoord.yx-uTime), h21(gl_FragCoord.xy*1.3))-.5;
+      r = normalize(r + j*rough*.25);
+      if(r.y<0.) r.y = abs(r.y)*.5+.01;
+      vec3 ro2 = p+n*.04;
+      vec2 h2 = march(ro2, r, uScene==2? 40.:110., uSteps/2);
+      vec3 rc;
+      if(h2.y<0.){ rc = sky(r); rc = mix(fogColor(), rc, .55) + scatter(ro2,r,110.); }
+      else {
+        vec3 p2,n2; float rf2, rg2;
+        rc = shadeHit(ro2, r, h2.x, h2.y, false, p2, n2, rf2, rg2);
+        rc = applyFog(rc, ro2, r, h2.x);
+      }
+      float F = .04+.96*pow(1.-max(dot(n,-rd),0.),5.);
+      col = mix(col, rc, clamp(refl*mix(.4,1.,F),0.,1.));
+    }
+    col = applyFog(col, ro, rd, h.x);
+  }
+  col *= uExpo;
+  col = aces(col);
+  col = pow(col, vec3(1./2.2));
+  float l = dot(col, vec3(.299,.587,.114));
+  col = mix(vec3(l), col, .82);
+  col = mix(col, col*vec3(.82,.97,1.12), smoothstep(.55,0.,l)*.8);
+  col = (col-.5)*1.12+.5;
+  col *= .35 + .65*pow(16.*uv.x*uv.y*(1.-uv.x)*(1.-uv.y), .28);
+  col += (h21(gl_FragCoord.xy+fract(uTime*7.)*137.)-.5)*.045;
+  col *= uFade;
+  fragColor = vec4(max(col,0.),1.);
+}
+</script>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)), lerp=(a,b,t)=>a+(b-a)*t, ss=t=>t*t*(3-2*t);
+function hash(n){ const x=Math.sin(n*127.1+311.7)*43758.5453; return x-Math.floor(x); }
+function vnoise(x){ const i=Math.floor(x), f=x-i, u=f*f*(3-2*f); return lerp(hash(i),hash(i+1),u); }
+
+/* ---------------- settings ---------------- */
+const settings = { vol:.8, voice:true, q:'med' };
+try{ Object.assign(settings, JSON.parse(localStorage.getItem('seoulAbyss.settings')||'{}')); }catch(e){}
+function saveSettings(){ try{ localStorage.setItem('seoulAbyss.settings', JSON.stringify(settings)); }catch(e){} }
+
+/* ---------------- WebGL ---------------- */
+const cv = $('#gl');
+const gl = cv.getContext('webgl2', {antialias:false, alpha:false, powerPreference:'high-performance', preserveDrawingBuffer:false});
+let prog=null, U={}, atlasTex=null;
+if(!gl){ $('#nogl').style.display='flex'; }
+const VS = `#version 300 es
+in vec2 aP; void main(){ gl_Position=vec4(aP,0.,1.); }`;
+function compile(type, src){ const s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s);
+  if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)){ const log=gl.getShaderInfoLog(s); console.error(log); window.__shaderError=log; throw new Error(log);} return s; }
+function makeAtlas(){
+  const c=document.createElement('canvas'); c.width=1024; c.height=512; const x=c.getContext('2d');
+  x.fillStyle='#000'; x.fillRect(0,0,1024,512);
+  const signs=[['편','의','점'],['약','국'],['노','래','방'],['P','C','방'],['치','킨'],['병','원'],['2','4','시'],['모','텔']];
+  signs.forEach((s,i)=>{
+    const cx=i*128+64;
+    x.fillStyle='rgba(255,255,255,.07)'; x.fillRect(i*128+8,8,112,496);
+    x.strokeStyle='rgba(255,255,255,.9)'; x.lineWidth=4; x.shadowColor='#fff'; x.shadowBlur=14;
+    x.strokeRect(i*128+14,14,100,484);
+    x.fillStyle='#fff'; x.textAlign='center'; x.textBaseline='middle';
+    x.font='900 84px "Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif';
+    const step=440/s.length;
+    s.forEach((ch,k)=>{ x.shadowBlur=22; x.fillText(ch,cx,40+step*(k+.5)); x.shadowBlur=6; x.fillText(ch,cx,40+step*(k+.5)); });
+  });
+  const t=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,t);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,c);
+  gl.generateMipmap(gl.TEXTURE_2D);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  return t;
+}
+function initGL(){
+  if(!gl) return false;
+  try{
+    prog=gl.createProgram();
+    gl.attachShader(prog, compile(gl.VERTEX_SHADER, VS));
+    gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, $('#fs').textContent));
+    gl.bindAttribLocation(prog,0,'aP'); gl.linkProgram(prog);
+    if(!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+  }catch(e){ $('#nogl').innerHTML='着色器编译失败<br><small>'+String(e.message).slice(0,300)+'</small>'; $('#nogl').style.display='flex'; return false; }
+  gl.useProgram(prog);
+  const b=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,b);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
+  ['uRes','uTime','uFlash','uAlarm','uFade','uFog','uExpo','uScene','uSteps','uNL','uRo','uTa','uLP','uLC','uLK','uBld','uBldC','uAtlas']
+    .forEach(n=>U[n]=gl.getUniformLocation(prog,n));
+  atlasTex = makeAtlas();
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, atlasTex); gl.uniform1i(U.uAtlas,0);
+  return true;
+}
+
+/* ---------------- world data ---------------- */
+const NEON=[[1,.12,.45],[.1,.75,1],[1,.08,.06],[.2,1,.4],[.6,.2,1],[1,.5,.08]];
+const B=[]; // 32 buildings
+for(let i=0;i<32;i++){
+  const r=k=>hash(i*13.7+k*3.1);
+  B.push({h:10+r(1)*38, sign:r(2)<.8?Math.floor(r(3)*8):-1, col:NEON[Math.floor(r(4)*6)], mode:r(5)<.6?0:(r(5)<.85?1:2), store:r(6)<.3?1:0, ph:r(7)*100});
+}
+const bldArr=new Float32Array(128), bldCArr=new Float32Array(96);
+const LP=new Float32Array(60), LC=new Float32Array(60), LK=new Float32Array(40);
+let NL=0;
+function addL(p,c,type=0,ph=0){ if(NL>=20) return; LP.set(p,NL*3); LC.set(c,NL*3); LK[NL*2]=type; LK[NL*2+1]=ph; NL++; }
+function flick(t,seed,mode){
+  if(mode===2) return Math.max(0, (vnoise(t*.7+seed)>.92? .6:0) * (Math.sin(t*60)>0?1:.2));
+  if(mode===1){ const n=vnoise(t*6+seed); return n>.35 ? (vnoise(t*30+seed*3)>.15?1:.25) : .05; }
+  return .92+.08*vnoise(t*3+seed);
+}
+
+let world = { scene:0, alarm:0, flash:0, fog:.035, expo:1 };
+
+function setLights(t, ro){
+  NL=0;
+  if(world.scene===0){
+    for(let i=0;i<32;i++){ const b=B[i];
+      bldArr[i*4]=b.h; bldArr[i*4+1]=b.sign; bldArr[i*4+2]=b.sign>=0?flick(t,b.ph,b.mode):0;
+      bldArr[i*4+3]=b.store*flick(t,b.ph+7, b.mode===2?1:0);
+      bldCArr.set(b.col,i*3);
+    }
+    const k0=Math.floor(ro[2]/20)-1;
+    for(let k=0;k<5;k++) for(const s of [-1,1]){
+      const z=(k0+k)*20, h=hash(z*.37+(s>0?11:0));
+      const mode = h<.2?2:(h<.38?1:0);
+      const f = flick(t, h*50, mode);
+      addL([s*5.45,6.15,z],[1*38*f,.52*38*f,.2*38*f],1);
+    }
+    const c0=Math.floor(ro[2]/14);
+    for(let c=c0;c<c0+3;c++) for(const s of [-1,1]){
+      const i=(((c%16)+16)%16)+(s>0?16:0), b=B[i];
+      if(b.sign<0){ addL([0,-50,0],[0,0,0]); continue; }
+      const br=bldArr[i*4+2]*6;
+      addL([s*10.1,6.8,(c+.5)*14-4.8],[b.col[0]*br,b.col[1]*br,b.col[2]*br]);
+    }
+    const hz = (t*1.4)%1<.5 ? 7 : 0;
+    addL([2.6,.9,28],[hz,hz*.45,0]);
+    const pr = Math.sin(t*9)>0;
+    addL([-1.5,1.7,96], pr?[90,4,4]:[4,12,110]);
+  } else if(world.scene===1){
+    for(const f of [[-30,22,0],[-6,22,32],[9,22,-24],[21,22,58],[-22,22,56],[24,22,6]]){
+      const ff = (f[0]===9)? flick(t,3,1):1;
+      addL([f[0],f[1]-.6,f[2]],[1*560*ff,.6*560*ff,.3*560*ff],1);
+    }
+    addL([52,13,49],[30,26,20]); addL([49,5.5,-30],[14,12,9]);
+    const pulse=.6+.4*Math.sin(t*2.3);
+    addL([-1.5,1.5,-2.7],[.3*pulse,3.5*pulse,3.2*pulse]);
+    const red=(t*.8)%1<.5?1:0; addL([-.9,1.9,-2.6],[3*red,0,0]);
+    addL([24,34.5,-16],[(t%2)<1?20:0,0,0]); addL([24,34.5,26],[(t%2)>=1?20:0,0,0]);
+  } else {
+    const al = world.alarm>.5;
+    for(let k=0;k<8;k++){
+      const z=2+4*k, h=hash(k*7.7);
+      let f = al ? (k===2? flick(t,9,2)*.5 : 0) : flick(t,h*40, h<.25?1:0);
+      addL([0,3.02,z],[.85*7*f,.95*7*f,1*7*f],1);
+    }
+    for(let j=0;j<4;j++) for(const s of [-1,1]){
+      const z=5+5*j; let f = al? (.55+.45*(vnoise(t*6+j+s)>.3?1:0)) : 1;
+      if(al && s>0 && j===1) f*=.6;
+      addL([s*1.85,1.3,z],[.05*2.2*f,.55*2.2*f,.5*2.2*f]);
+    }
+    if(al){ addL([2.85,2.75,6],[40,1.5,1],2,0); addL([-2.85,2.75,17],[40,1.5,1],2,2.2); }
+  }
+}
+
+/* ---------------- render ---------------- */
+let scale = {low:.42, med:.6, high:.85}[settings.q] || .6;
+let maxScale = scale;
+const stepsFor = {low:80, med:110, high:150};
+function resize(){
+  const w=Math.max(2,Math.floor(innerWidth*scale)), h=Math.max(2,Math.floor(innerHeight*scale));
+  if(cv.width!==w||cv.height!==h){ cv.width=w; cv.height=h; }
+}
+let cam = { ro:[0,1.7,0], ta:[0,1.6,10] };
+function draw(t){
+  if(!prog) return;
+  resize();
+  gl.viewport(0,0,cv.width,cv.height);
+  setLights(t, cam.ro);
+  gl.uniform2f(U.uRes,cv.width,cv.height);
+  gl.uniform1f(U.uTime,t);
+  gl.uniform1f(U.uFlash,world.flash);
+  gl.uniform1f(U.uAlarm,world.alarm);
+  gl.uniform1f(U.uFade,1);
+  gl.uniform1f(U.uFog,world.fog);
+  gl.uniform1f(U.uExpo,world.expo);
+  gl.uniform1i(U.uScene,world.scene);
+  gl.uniform1i(U.uSteps,stepsFor[settings.q]||110);
+  gl.uniform1i(U.uNL,NL);
+  gl.uniform3fv(U.uRo,cam.ro); gl.uniform3fv(U.uTa,cam.ta);
+  gl.uniform3fv(U.uLP,LP); gl.uniform3fv(U.uLC,LC); gl.uniform2fv(U.uLK,LK);
+  gl.uniform4fv(U.uBld,bldArr); gl.uniform3fv(U.uBldC,bldCArr);
+  gl.drawArrays(gl.TRIANGLES,0,3);
+}
+
+/* ---------------- rain overlay ---------------- */
+const fx=$('#fx'), fctx=fx.getContext('2d');
+const drops=[]; for(let i=0;i<260;i++) drops.push({x:Math.random(),y:Math.random(),l:.02+Math.random()*.05,v:.9+Math.random()*1.2,a:.05+Math.random()*.18});
+function drawRain(dt, on){
+  const w=fx.width=Math.floor(innerWidth*.75), h=fx.height=Math.floor(innerHeight*.75);
+  fctx.clearRect(0,0,w,h);
+  if(!on) return;
+  fctx.lineWidth=1;
+  for(const d of drops){
+    d.y+=d.v*dt*1.4; d.x+=d.v*dt*.12;
+    if(d.y>1.05){ d.y=-.1; d.x=Math.random()*1.1-.1; }
+    fctx.strokeStyle=`rgba(190,200,215,${d.a})`;
+    fctx.beginPath(); fctx.moveTo(d.x*w,d.y*h); fctx.lineTo((d.x+d.l*.12)*w,(d.y+d.l)*h); fctx.stroke();
+  }
+}
+
+/* ---------------- audio ---------------- */
+const A = { ctx:null };
+function initAudio(){
+  if(A.ctx) return;
+  const C = window.AudioContext||window.webkitAudioContext; if(!C) return;
+  const ctx = A.ctx = new C();
+  A.master = ctx.createGain(); A.master.gain.value = settings.vol; A.master.connect(ctx.destination);
+  const nb = ctx.createBuffer(1, ctx.sampleRate*3, ctx.sampleRate); const d=nb.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+  A.noiseBuf = nb;
+  const rain = ctx.createBufferSource(); rain.buffer=nb; rain.loop=true;
+  const bp = ctx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=1400; bp.Q.value=.4;
+  const hp = ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=400;
+  A.rainG = ctx.createGain(); A.rainG.gain.value=0;
+  rain.connect(bp); bp.connect(hp); hp.connect(A.rainG); A.rainG.connect(A.master); rain.start();
+  const rum = ctx.createBufferSource(); rum.buffer=nb; rum.loop=true; rum.playbackRate.value=.5;
+  const lp = ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=120;
+  A.rumG = ctx.createGain(); A.rumG.gain.value=0; rum.connect(lp); lp.connect(A.rumG); A.rumG.connect(A.master); rum.start();
+  A.droneG = ctx.createGain(); A.droneG.gain.value=0;
+  const dl = ctx.createBiquadFilter(); dl.type='lowpass'; dl.frequency.value=180; dl.Q.value=6;
+  for(const f of [41.2, 41.6, 61.7]){ const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=f; o.connect(dl); o.start(); }
+  const lfo=ctx.createOscillator(); lfo.frequency.value=.05; const lg=ctx.createGain(); lg.gain.value=90; lfo.connect(lg); lg.connect(dl.frequency); lfo.start();
+  dl.connect(A.droneG); A.droneG.connect(A.master);
+  A.sirenG = ctx.createGain(); A.sirenG.gain.value=0;
+  const so=ctx.createOscillator(); so.type='triangle'; so.frequency.value=700;
+  const sl=ctx.createOscillator(); sl.frequency.value=.18; const sg=ctx.createGain(); sg.gain.value=220; sl.connect(sg); sg.connect(so.frequency); sl.start();
+  const sf=ctx.createBiquadFilter(); sf.type='lowpass'; sf.frequency.value=1100;
+  so.connect(sf); sf.connect(A.sirenG); A.sirenG.connect(A.master); so.start();
+  A.humG = ctx.createGain(); A.humG.gain.value=0;
+  const ho=ctx.createOscillator(); ho.type='sawtooth'; ho.frequency.value=120; const hf=ctx.createBiquadFilter(); hf.type='lowpass'; hf.frequency.value=400;
+  ho.connect(hf); hf.connect(A.humG); A.humG.connect(A.master); ho.start();
+  A.alarmG = ctx.createGain(); A.alarmG.gain.value=0;
+  const ao=ctx.createOscillator(); ao.type='square'; ao.frequency.value=740;
+  const am=ctx.createOscillator(); am.type='square'; am.frequency.value=1.6; const amg=ctx.createGain(); amg.gain.value=140; am.connect(amg); amg.connect(ao.frequency); am.start();
+  const af=ctx.createBiquadFilter(); af.type='lowpass'; af.frequency.value=1600;
+  ao.connect(af); af.connect(A.alarmG); A.alarmG.connect(A.master); ao.start();
+}
+function amb(target){
+  if(!A.ctx) return; const t=A.ctx.currentTime;
+  const set=(g,v)=>{ g.gain.cancelScheduledValues(t); g.gain.setTargetAtTime(v,t,.8); };
+  set(A.rainG, target.rain||0); set(A.rumG, target.rum||0); set(A.droneG, target.drone||0);
+  set(A.sirenG, target.siren||0); set(A.humG, target.hum||0); set(A.alarmG, target.alarm||0);
+}
+function thunder(delay){
+  if(!A.ctx) return; const ctx=A.ctx, t=ctx.currentTime+delay;
+  const s=ctx.createBufferSource(); s.buffer=A.noiseBuf; s.playbackRate.value=.35;
+  const f=ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=260;
+  const g=ctx.createGain(); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.9,t+.08); g.gain.exponentialRampToValueAtTime(.001,t+5);
+  s.connect(f); f.connect(g); g.connect(A.master); s.start(t); s.stop(t+5.2);
+}
+function boom(){
+  if(!A.ctx) return; const ctx=A.ctx, t=ctx.currentTime;
+  const o=ctx.createOscillator(); o.frequency.setValueAtTime(90,t); o.frequency.exponentialRampToValueAtTime(28,t+1.8);
+  const g=ctx.createGain(); g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.55,t+.04); g.gain.exponentialRampToValueAtTime(.001,t+2.4);
+  o.connect(g); g.connect(A.master); o.start(t); o.stop(t+2.5);
+}
+function horn(){
+  if(!A.ctx) return; const ctx=A.ctx, t=ctx.currentTime+.5;
+  const g=ctx.createGain(); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.18,t+.6); g.gain.setValueAtTime(.18,t+2.6); g.gain.linearRampToValueAtTime(0,t+4);
+  const f=ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=320;
+  for(const fr of [69,69.6,104]){ const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=fr; o.connect(f); o.start(t); o.stop(t+4.1); }
+  f.connect(g); g.connect(A.master);
+}
+function tick(){
+  if(!A.ctx) return; const ctx=A.ctx, t=ctx.currentTime;
+  const o=ctx.createOscillator(); o.type='triangle'; o.frequency.setValueAtTime(1800,t); o.frequency.exponentialRampToValueAtTime(400,t+.05);
+  const g=ctx.createGain(); g.gain.setValueAtTime(.05,t); g.gain.exponentialRampToValueAtTime(.0001,t+.08);
+  o.connect(g); g.connect(A.master); o.start(t); o.stop(t+.1);
+}
+
+/* ---------------- narration (Korean TTS) ---------------- */
+const Voice = {
+  v:null,
+  init(){
+    if(!('speechSynthesis' in window)) return;
+    const pick=()=>{
+      const vs=speechSynthesis.getVoices().filter(v=>/^ko/i.test(v.lang));
+      const pref=[/sunhi.*natural|natural.*sunhi/i,/sunhi/i,/yuna/i,/google/i,/heami|female|여성/i];
+      let found=null; for(const r of pref){ found=vs.find(v=>r.test(v.name)); if(found) break; }
+      this.v = found || vs[0] || null; updateVoiceNote();
+    };
+    pick(); speechSynthesis.onvoiceschanged=pick;
+  },
+  speak(text){
+    return new Promise(res=>{
+      const est = 1200 + text.length*190;
+      if(!settings.voice || !('speechSynthesis' in window)) return setTimeout(()=>res(est), est);
+      let done=false; const fin=()=>{ if(!done){ done=true; res(0);} };
+      try{
+        speechSynthesis.cancel();
+        const u=new SpeechSynthesisUtterance(text);
+        u.lang='ko-KR'; if(this.v) u.voice=this.v;
+        u.rate=.86; u.pitch=1.0; u.volume=clamp(settings.vol*1.1,0,1);
+        u.onend=fin; u.onerror=fin;
+        speechSynthesis.speak(u);
+        setTimeout(fin, est+4000);
+      }catch(e){ setTimeout(fin, est); }
+    });
+  },
+  stop(){ try{ speechSynthesis.cancel(); }catch(e){} }
+};
+function updateVoiceNote(){
+  const n=$('#voiceNote');
+  if(!('speechSynthesis' in window)) n.textContent='当前浏览器不支持语音合成，剧情将只显示字幕。';
+  else if(!Voice.v) n.textContent='未检测到韩语语音包：建议用 Edge / Chrome 打开（Edge 的 “SunHi” 女声效果最自然），否则将只显示字幕。';
+  else n.textContent='旁白语音：'+Voice.v.name;
+}
+
+/* ---------------- intro script ---------------- */
+const SHOTS = [
+  {scene:1, alarm:0, fog:.013, expo:2.3, ro0:[-1.6,5.5,-40], ta0:[6,7,30], ro1:[-1.4,4.2,-28], ta1:[8,7,34], loc:'서해 · 어느 항구 · 23:12',
+   ko:'어느 겨울 밤, 서해의 한 항구. 한 척의 화물선이 소리 없이 정박했다.',
+   zh:'某个冬夜，西海岸的一座港口。一艘货轮悄无声息地靠了岸。', min:7.5, sfx:'horn'},
+  {scene:1, alarm:0, fog:.03, expo:1.2, ro0:[-.2,2.0,-10.5], ta0:[-1.5,1.35,-2], ro1:[-.6,1.75,-7], ta1:[-1.5,1.35,-2], loc:'',
+   ko:'배에는 깊은 바다에서 채집한 생물들과, 그 몸속에 잠들어 있던 바이러스가 실려 있었다.',
+   zh:'船上运来的，是从深海采集的生物——以及沉睡在它们体内的病毒。', min:8},
+  {scene:2, alarm:0, fog:.025, ro0:[.8,1.6,-2.5], ta0:[0,1.4,12], ro1:[.5,1.6,2.5], ta1:[-.3,1.35,14], loc:'○○생명공학연구소 · 지하 3층',
+   ko:'그것들은 한 생명공학 연구소의 연구를 위해, 비밀리에 수입된 것이었다.',
+   zh:'这批生物被秘密进口，用于某生物研究所的研究。', min:8},
+  {scene:2, alarm:1, fog:.04, ro0:[-1.0,1.75,0], ta0:[.8,.9,11], ro1:[-.8,1.6,3.2], ta1:[.8,1.0,11], loc:'검역 구역 · 경보 발령',
+   ko:'그러나 방역 요원들이 검사를 진행하던 중, 아무도 모르는 사이에 누출이 일어났다.',
+   zh:'然而，就在防疫人员进行检查时，泄漏在不经意间发生了。', min:8, sfx:'boom'},
+  {scene:2, alarm:1, fog:.045, ro0:[-.1,1.5,6.6], ta0:[.35,1.3,10], ro1:[0,1.5,7.6], ta1:[.35,1.38,10], loc:'',
+   ko:'많은 작업자들의 머리에 그 생물의 피가 닿았고… 그들은, 감염되었다.',
+   zh:'许多工作人员的头部不慎沾上了那些生物的血液……他们，被感染了。', min:8, sfx:'boom'},
+  {scene:0, alarm:0, fog:.03, expo:1.6, ro0:[0,22,-30], ta0:[0,3,45], ro1:[0,18,-16], ta1:[0,2,55], loc:'서울특별시 · 72시간 후',
+   ko:'그리고 사흘 뒤, 서울.',
+   zh:'三天后，首尔。', min:6, sfx:'boom'},
+  {scene:0, alarm:0, fog:.035, ro0:[-1.2,1.7,-5], ta0:[0,1.6,20], ro1:[-1.0,1.7,0], ta1:[.2,1.6,24], loc:'',
+   ko:'나는 평범한 대학생이었다. 그날 밤까지는.',
+   zh:'我只是一名普通的大学生。直到那天夜里。', min:7.5},
+];
+
+/* ---------------- state machine ---------------- */
+let state='boot', stateT=0, shot=null, shotT=0, shotDur=8, introToken=0;
+const black=$('#black');
+function setBlack(o, dur=1){ black.style.transitionDuration=dur+'s'; black.style.opacity=o; }
+function show(id,on){ $(id).classList.toggle('on',on); }
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+let glReady=false;
+setTimeout(()=>{
+  glReady = initGL();
+  $('#loadTxt').textContent = glReady ? '준비 완료 · 渲染器就绪' : '';
+  if(glReady){ world.scene=0; cam.ro=[-1.2,1.75,-6]; cam.ta=[0,1.7,14]; draw(0); }
+}, 50);
+Voice.init();
+
+$('#boot').addEventListener('click', async ()=>{
+  if(state!=='boot') return;
+  state='presents';
+  initAudio(); try{ A.ctx && A.ctx.resume(); }catch(e){}
+  try{ speechSynthesis && speechSynthesis.getVoices(); }catch(e){}
+  show('#boot',false);
+  amb({drone:.05, rum:.12});
+  await sleep(900);
+  show('#presents',true);
+  await sleep(3800);
+  show('#presents',false);
+  await sleep(1400);
+  enterMenu();
+});
+
+function enterMenu(){
+  state='menu'; stateT=0;
+  world.scene=0; world.alarm=0; world.fog=.035; world.expo=1;
+  show('#menu',true); show('#intro',false); show('#chapter',false);
+  setBlack(0, 3);
+  amb({rain:.22, rum:.18, drone:.045, siren:.012});
+  selIdx=0; updateSel();
+}
+
+/* menu */
+const items=[...document.querySelectorAll('.mi')];
+let selIdx=0;
+function updateSel(){ items.forEach((m,i)=>m.classList.toggle('sel', i===selIdx)); }
+items.forEach((m,i)=>{
+  m.addEventListener('mouseenter',()=>{ if(m.classList.contains('dis')) return; if(selIdx!==i){selIdx=i;updateSel();tick();} });
+  m.addEventListener('click',()=>activate(m.dataset.act));
+});
+function activate(act){
+  if(state!=='menu' || anyPanel()) return;
+  tick();
+  if(act==='start') startIntro();
+  if(act==='settings') show('#pSettings',true);
+  if(act==='credits') show('#pCredits',true);
+}
+function anyPanel(){ return $('#pSettings').classList.contains('on')||$('#pCredits').classList.contains('on'); }
+document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>{ show('#pSettings',false); show('#pCredits',false); tick(); }));
+addEventListener('keydown',e=>{
+  if(state==='menu'){
+    if(anyPanel()){ if(e.key==='Escape'){ show('#pSettings',false); show('#pCredits',false);} return; }
+    const en=items.map((m,i)=>m.classList.contains('dis')?-1:i).filter(i=>i>=0);
+    if(e.key==='ArrowDown'||e.key==='s'){ selIdx=en[(en.indexOf(selIdx)+1)%en.length]; updateSel(); tick(); }
+    if(e.key==='ArrowUp'||e.key==='w'){ selIdx=en[(en.indexOf(selIdx)-1+en.length)%en.length]; updateSel(); tick(); }
+    if(e.key==='Enter'||e.key===' ') activate(items[selIdx].dataset.act);
+  } else if(state==='intro' && e.key==='Escape') skipIntro();
+  else if(state==='boot' && (e.key==='Enter'||e.key===' ')) $('#boot').click();
+});
+
+/* settings */
+$('#vol').value=Math.round(settings.vol*100);
+$('#vol').addEventListener('input',e=>{ settings.vol=e.target.value/100; if(A.master) A.master.gain.value=settings.vol; saveSettings(); });
+function segInit(id,key,attr,conv){
+  const bs=[...document.querySelectorAll(id+' button')];
+  const sync=()=>bs.forEach(b=>b.classList.toggle('on', conv(b.dataset[attr])===settings[key]));
+  bs.forEach(b=>b.addEventListener('click',()=>{ settings[key]=conv(b.dataset[attr]); sync(); saveSettings(); tick();
+    if(key==='q'){ scale=maxScale={low:.42,med:.6,high:.85}[settings.q]; } }));
+  sync();
+}
+segInit('#segVoice','voice','v',v=>v==='1');
+segInit('#segQ','q','q',v=>v);
+
+/* intro */
+async function startIntro(){
+  state='intro-wait';
+  show('#menu',false);
+  setBlack(1, 1.6);
+  amb({drone:.04, rum:.1});
+  await sleep(1800);
+  state='intro'; show('#intro',true);
+  const tok=++introToken;
+  for(let i=0;i<SHOTS.length;i++){
+    if(tok!==introToken) return;
+    await playShot(SHOTS[i], tok);
+  }
+  if(tok===introToken) toChapter();
+}
+async function playShot(s, tok){
+  shot=s; shotT=0;
+  world.scene=s.scene; world.alarm=s.alarm; world.fog=s.fog; world.expo=s.expo||1;
+  cam.ro=s.ro0.slice(); cam.ta=s.ta0.slice();
+  if(s.scene===0) amb({rain:.22, rum:.2, drone:.05, siren:.015});
+  else if(s.scene===1) amb({rain:.26, rum:.25, drone:.05});
+  else if(!s.alarm) amb({hum:.012, drone:.05, rum:.05});
+  else amb({alarm:.025, drone:.07, rum:.08});
+  if(s.sfx==='horn') horn();
+  if(s.sfx==='boom') boom();
+  $('#locTxt').textContent=s.loc; $('#loc').classList.toggle('show', !!s.loc);
+  setBlack(0, 1.2);
+  await sleep(900); if(tok!==introToken) return;
+  $('#subZh').textContent=s.zh; $('#subKo').textContent=s.ko; $('#sub').classList.add('show');
+  const t0=performance.now();
+  await Voice.speak(s.ko);
+  const spoke=(performance.now()-t0)/1000;
+  shotDur = Math.max(s.min, spoke+2.4);
+  const remain = Math.max(800, (shotDur-.9-spoke)*1000 - 1200);
+  await sleep(remain); if(tok!==introToken) return;
+  $('#sub').classList.remove('show');
+  setBlack(1, 1.1);
+  await sleep(1200);
+}
+function skipIntro(){ introToken++; Voice.stop(); toChapter(); }
+$('#skip').addEventListener('click', skipIntro);
+async function toChapter(){
+  state='chapter';
+  $('#sub').classList.remove('show'); $('#loc').classList.remove('show');
+  setBlack(1, .8); boom();
+  amb({drone:.05, rum:.15});
+  await sleep(900);
+  show('#intro',false); show('#chapter',true);
+}
+$('#backMenu').addEventListener('click',()=>{ show('#chapter',false); tick(); setTimeout(enterMenu, 700); });
+
+/* lightning */
+let nextFlash = 6, flashT = -10;
+function updateFlash(t, dt){
+  const outdoor = world.scene<2 && (state==='menu'||state==='intro'||state==='presents');
+  if(outdoor && t>nextFlash){ flashT=t; nextFlash=t+9+Math.random()*14; thunder(.6+Math.random()*1.4); }
+  const e=t-flashT;
+  let f = 0;
+  if(e>=0 && e<1.2) f = Math.max(0, Math.exp(-e*9)*1.0 + (e>.18? Math.exp(-(e-.18)*7)*.7:0) + (e>.42? Math.exp(-(e-.42)*12)*.4:0));
+  world.flash = outdoor ? f : 0;
+}
+
+/* title glitch + clock */
+setInterval(()=>{ const h=$('#title'); if(Math.random()<.35){ h.classList.add('g'); setTimeout(()=>h.classList.remove('g'), 80+Math.random()*120); } }, 900);
+
+
+/* main loop */
+let last=performance.now(), T=0, ftAvg=16, adaptT=0;
+function frame(now){
+  const dt=Math.min(.1,(now-last)/1000); last=now; T+=dt; stateT+=dt;
+  updateFlash(T, dt);
+  if(state==='menu' || state==='presents' || state==='boot'){
+    const s=T*.035;
+    cam.ro=[-1.3+Math.sin(s*1.3)*.5, 1.72+Math.sin(T*.9)*.015, -7+Math.sin(s)*5];
+    cam.ta=[cam.ro[0]+.9+Math.sin(s*.7)*.6, 1.85, cam.ro[2]+18];
+  } else if((state==='intro') && shot){
+    shotT+=dt; const k=ss(clamp(shotT/shotDur,0,1));
+    const sh = shot.scene===2 && shot.alarm ? .012 : .005;
+    for(let i=0;i<3;i++){
+      cam.ro[i]=lerp(shot.ro0[i],shot.ro1[i],k)+(vnoise(T*1.3+i*10)-.5)*sh*6;
+      cam.ta[i]=lerp(shot.ta0[i],shot.ta1[i],k)+(vnoise(T*1.1+i*20+5)-.5)*sh*10;
+    }
+  }
+  if(glReady && state!=='chapter' && !(state==='intro-wait' && stateT>2)) draw(T);
+  drawRain(dt, world.scene<2 && state!=='chapter' && state!=='boot');
+  // adaptive resolution
+  ftAvg = ftAvg*.95 + (dt*1000)*.05; adaptT+=dt;
+  if(adaptT>1.5 && glReady){ adaptT=0;
+    if(ftAvg>30 && scale>.3){ scale=Math.max(.3,scale-.06); }
+    else if(ftAvg<17 && scale<maxScale){ scale=Math.min(maxScale,scale+.04); }
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* debug hooks for testing */
+window.__SA = { get state(){return state;}, world, cam, SHOTS, setShot(i,k=.5){ const s=SHOTS[i]; shot=s; world.scene=s.scene; world.alarm=s.alarm; world.fog=s.fog; world.expo=s.expo||1; shotDur=1; shotT=k; state='intro'; },
+  draw:(t)=>draw(t), setScale(s){scale=maxScale=s;}, enterMenu };
+})();
+</script>
 </body>
 </html>
